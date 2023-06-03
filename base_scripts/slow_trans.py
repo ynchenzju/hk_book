@@ -29,12 +29,20 @@ id_name = 'gan1'
 if len(sys.argv) > 1:
     id_name = sys.argv[1]
 
+log_path = "./log/" + identity_name
+succ_log_path = "./log/succ_" + identity_name
+
 def init_logger():
+    if os.path.exists(log_path):
+        shutil.rmtree(log_path)
+    if os.path.exists(succ_log_path):
+        shutil.rmtree(succ_log_path)
+    os.makedirs(log_path)
+
     logger = logging.getLogger('my_logger')
     logger.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler()
-    # handler = TimedRotatingFileHandler('./log/trans_hk.log', when='H', interval=3, backupCount=8)
-    # handler.setLevel(logging.DEBUG)
+    # handler = logging.StreamHandler()
+    handler = TimedRotatingFileHandler(log_path + '/hk_book.log', when='H', interval=3, backupCount=8)
     # 设置日志格式
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%Y-%m-%d %H:%M:%S')
     handler.setFormatter(formatter)
@@ -433,6 +441,7 @@ if __name__ == "__main__":
             log_record_list = []
             if succ_flag:
                 send_succ_message(book_conf, book_result)
+                shutil.move(log_path, succ_log_path)
                 break
             time.sleep(15)
             same_ticket_cnt += 1
