@@ -1,0 +1,13 @@
+day_intervals: ''
+end_day: '2023-07-30'
+flag: true
+id_name: six5
+office_ids: 'RKO'
+query_code: '8981'
+select_days: '2023-07-18'
+sendid: UID_DTNWzSlwh04rIEPWOiCJ4wPqcz4P
+start_day: '2023-07-01'
+time_intervals: '0700,1200'
+uids:
+- '830696:2'
+weekdays: ''
