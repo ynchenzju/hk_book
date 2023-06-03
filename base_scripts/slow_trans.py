@@ -1,5 +1,6 @@
 import requests
 import time
+import shutil
 import ddddocr
 import re
 from urllib import parse
@@ -9,6 +10,7 @@ import datetime
 from datetime import datetime as dt, timezone, timedelta
 import sys
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import concurrent.futures
 import os
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -29,8 +31,8 @@ id_name = 'gan1'
 if len(sys.argv) > 1:
     id_name = sys.argv[1]
 
-log_path = "./log/" + identity_name
-succ_log_path = "./log/succ_" + identity_name
+log_path = "./log/" + id_name
+succ_log_path = "./log/succ_" + id_name
 
 def init_logger():
     if os.path.exists(log_path):
@@ -416,9 +418,9 @@ if __name__ == "__main__":
     succ_flag = 0
     while True:
         cur_time = get_cur_time()
-        if cur_time >= "0030" and cur_time <= "0830":
-            logger.info("enter mid night and stop rob")
-            sys.exit(1)
+        # if cur_time >= "0030" and cur_time <= "0830":
+        #     logger.info("enter mid night and stop rob")
+        #     sys.exit(1)
 
         succ_flag = 0
         s = requests.Session()
