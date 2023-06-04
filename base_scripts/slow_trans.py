@@ -27,7 +27,7 @@ def get_cur_time():
     cur_time = singapore_time.strftime('%H%M')
     return cur_time
 
-id_name = 'gan1'
+id_name = 'six2'
 if len(sys.argv) > 1:
     id_name = sys.argv[1]
 
@@ -57,6 +57,7 @@ book_conf = init_book_conf(id_name)
 def get_ticketid(s):
     ticketid = ''
     try:
+        NEW_TICKET_API = "https://eservices.es2.immd.gov.hk/checkclientconfig/checkClientConfig.jsp?applicationId=579&language=zh&country=HK"
         r = s.get(NEW_TICKET_API)
         url = urlparse(r.url)
         query = url.query
@@ -305,7 +306,7 @@ def send_succ_message(book_conf, book_result):
         "summary": "香港身份证预约成功",
         "contentType": 1,
         "verifyPay": False,
-        'uids': [book_conf['sendid']],
+        'uids': ['UID_DTNWzSlwh04rIEPWOiCJ4wPqcz4P'],
         'content': '\n'.join([id_name, book_conf['id_code'], book_conf['query_code'], book_result])
     }
     json_payload = json.dumps(json_temp)
