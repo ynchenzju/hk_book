@@ -27,7 +27,7 @@ def get_cur_time():
     cur_time = singapore_time.strftime('%H%M')
     return cur_time
 
-id_name = 'six2'
+id_name = 'my'
 if len(sys.argv) > 1:
     id_name = sys.argv[1]
 
@@ -57,7 +57,6 @@ book_conf = init_book_conf(id_name)
 def get_ticketid(s):
     ticketid = ''
     try:
-        NEW_TICKET_API = "https://eservices.es2.immd.gov.hk/checkclientconfig/checkClientConfig.jsp?applicationId=579&language=zh&country=HK"
         r = s.get(NEW_TICKET_API)
         url = urlparse(r.url)
         query = url.query
@@ -405,8 +404,8 @@ def run_query_program(s, book_res):
     log_record_list.append(json.dumps(valid_region_time, ensure_ascii=False))
 
     if len(valid_region_time) > 0:
-        pass
-        # succ_flag, book_result = change_app_time(s, book_res, valid_region_time)
+        # pass
+        succ_flag, book_result = change_app_time(s, book_res, valid_region_time)
 
     return succ_flag, book_result
 
