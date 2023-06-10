@@ -15,7 +15,6 @@ import time
 script_dir = os.path.dirname(os.path.abspath(__file__))
 trans_var_path = os.path.join(script_dir, "trans_var.py")
 sys.path.append(trans_var_path)
-from trans_var import *
 import trans_var
 
 class Candidate:
@@ -23,11 +22,11 @@ class Candidate:
         self.book_conf = total_book_conf[id_name]
         self.id_name = id_name
         self.rebook_body = trans_var.rebook_body.copy()
-        self.change_app_req = trans_var.change_app_req.copy()
         self.rebook_body['identityCode'] = self.book_conf['id_code']
-        self.rebook_body['identityType'] = '2' if self.book_conf['id_code'] >= '0' and self.book_conf['id_code'] <= '9' else '1'
+        self.rebook_body['identityType'] = '2' if self.book_conf['id_code'][0] >= '0' and self.book_conf['id_code'][0] <= '9' else '1'
         self.rebook_body['enquiryCode'] = self.book_conf['query_code']
         self.normal_header = trans_var.normal_header.copy()
+        self.change_app_req = trans_var.change_app_req.copy()
         self.session_begin_time = 0
         self.sess = None
         self.log_record_list = []
@@ -35,6 +34,13 @@ class Candidate:
         self.init_logger(id_name)
         self.succ_flag = 0
         self.book_result = ''
+        self.region_day_time = {}
+
+    def update_book_conf(self, id_name, total_book_conf):
+        self.book_conf = total_book_conf[id_name]
+        self.rebook_body['identityCode'] = self.book_conf['id_code']
+        self.rebook_body['identityType'] = '2' if self.book_conf['id_code'][0] >= '0' and self.book_conf['id_code'][0] <= '9' else '1'
+        self.rebook_body['enquiryCode'] = self.book_conf['query_code']
 
     def init_logger(self, id_name):
         self.log_path = trans_var.log_path_prefix + id_name
@@ -54,8 +60,8 @@ class Candidate:
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
-    def build_session(self):
-        if int(time.time()) - self.session_begin_time < 1100 and self.sess != None:
+    def build_session(self, sess_time_interval = 1150):
+        if int(time.time()) - self.session_begin_time < sess_time_interval and self.sess != None:
             return
 
         self.book_res = {}
@@ -63,13 +69,15 @@ class Candidate:
             try:
                 self.sess = requests.Session()
                 self.session_begin_time = int(time.time())
-                r = self.sess.get(NEW_TICKET_API)
+                r = self.sess.get(trans_var.NEW_TICKET_API)
                 url = urlparse(r.url)
                 query = url.query
                 ticketid = parse.parse_qs(query).get('ticketId')[0]
                 if ticketid != '':
                     self.normal_header['ticketId'] = ticketid
                     self.check_tcCaptcha(self.sess)
+                else:
+                    self.logger.error('the web ticketid is null, please check!!')
             except Exception as e:
                 self.logger.error('An error occurred in get_ticketid or check_tcCaptcha: %s', str(e), exc_info=True)
 
@@ -111,9 +119,7 @@ class Candidate:
 
     def filter_region_time(self, region_day_time):
         self.cand_region_time = {}
-        filter_by_start_end = []
         filter_by_day_condition = []
-        filter_by_weekday = []
         filter_by_region = []
         filter_by_certain_time = []
         for region in region_day_time:
@@ -125,11 +131,6 @@ class Candidate:
                 dt = daytime['dt']
                 if dt not in self.book_conf['select_days']:
                     filter_by_day_condition.append(dt)
-                    continue
-
-                weekday, _ = trans_var.get_week_day(dt)
-                if len(self.book_conf['weekdays']) > 0 and weekday not in self.book_conf['weekdays']:
-                    filter_by_weekday.append(dt)
                     continue
 
                 valid_time_zone = []
@@ -148,11 +149,11 @@ class Candidate:
                     self.cand_region_time[region].append({'ts': daytime['ts'], 'dt': daytime['dt'], 'time_zone': valid_time_zone})
 
         self.log_record_list.append('filter_by_region: %s' % '|'.join(filter_by_region))
-        self.log_record_list.append('filter_by_start_end: %s' % '|'.join(filter_by_start_end))
         self.log_record_list.append('filter_by_day_condition: %s' % '|'.join(filter_by_day_condition))
-        self.log_record_list.append('filter_by_weekday: %s' % '|'.join(filter_by_weekday))
+        self.log_record_list.append('filter_by_certain_time: %s' % '|'.join(filter_by_certain_time))
 
     def change_app_time(self):
+        self.change_app_req = trans_var.change_app_req.copy()
         trans_var.fill_change_app_req(self.change_app_req, self.book_res)
         for region in self.cand_region_time:
             for avail_time in self.cand_region_time[region]:
@@ -200,7 +201,7 @@ class Candidate:
         return {region_en: result}
 
     def multi_request_avail_date(self):
-        new_req_avail_date_body = req_avail_date_body.copy()
+        new_req_avail_date_body = trans_var.req_avail_date_body.copy()
         new_req_avail_date_body['groupSize'] = int(self.book_res['applicantNum'])
         new_req_avail_date_body['nature'] = self.book_res['nature']
 
@@ -229,6 +230,8 @@ class Candidate:
                     new_region_time[region].append(daytime)
         self.old_region_day_time = self.region_day_time
         self.region_day_time = new_region_time
+        self.log_record_list.append(json.dumps(self.old_region_day_time))
+        self.log_record_list.append(json.dumps(self.region_day_time))
 
 
     def http_req_avail_time(self, req_link, req_body, daytime):
@@ -244,18 +247,19 @@ class Candidate:
 
 
     def multi_req_avail_time(self):
-        new_req_avail_time_body = req_avail_time_body.copy()
+        new_req_avail_time_body = trans_var.req_avail_time_body.copy()
         new_req_avail_time_body['groupSize'] = int(self.book_res['applicantNum'])
         new_req_avail_time_body['nature'] = self.book_res['nature']
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            params = []
-            for region in self.region_day_time:
-                for daytime in self.region_day_time[region]:
-                    ts, dt = daytime['ts'], daytime['dt']
-                    new_req_avail_time_body['targetOfficeId'] = region
-                    new_req_avail_time_body['targetDate'] = dt
-                    params.append((trans_var.req_time_link, new_req_avail_time_body.copy(), daytime))
-            if len(params) > 0:
+        params = []
+        for region in self.region_day_time:
+            for daytime in self.region_day_time[region]:
+                ts, dt = daytime['ts'], daytime['dt']
+                new_req_avail_time_body['targetOfficeId'] = region
+                new_req_avail_time_body['targetDate'] = dt
+                params.append((trans_var.req_time_link, new_req_avail_time_body.copy(), daytime))
+
+        if len(params) > 0:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
                 executor.map(lambda args: self.http_req_avail_time(*args), params)
                 executor.shutdown(wait=True)
 
@@ -264,4 +268,8 @@ class Candidate:
         self.log_record_list = []
 
     def __del__(self):
-        self.sess.close()
+        try:
+            if self.sess is not None:
+                self.sess.close()
+        except:
+            pass
