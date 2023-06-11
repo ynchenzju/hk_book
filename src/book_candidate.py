@@ -237,8 +237,8 @@ class Candidate:
                     new_region_time[region].append(daytime)
         self.old_region_day_time = self.region_day_time
         self.region_day_time = new_region_time
-        self.log_record_list.append("total_region_daytime is: " + json.dumps(self.old_region_day_time))
-        self.log_record_list.append("filter_by_need_days is: " + json.dumps(self.region_day_time))
+        self.log_record_list.append("total region_daytime is: " + json.dumps(self.old_region_day_time))
+        self.log_record_list.append("valid region_daytime is: " + json.dumps(self.region_day_time))
 
 
     def http_req_avail_time(self, req_link, req_body, daytime):
