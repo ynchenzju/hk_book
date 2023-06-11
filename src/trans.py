@@ -27,6 +27,7 @@ def get_cur_time():
 
 def parse_select_days(book_conf):
     day_set = set(book_conf['select_days'].split(",")) if len(book_conf['select_days']) > 0 else set()
+    exclude_day_set = set(book_conf['exclude_days'].split(",")) if len(book_conf['exclude_days']) > 0 else set()
     day_pairs = book_conf['day_intervals'].split(";") if len(book_conf['day_intervals']) > 0 else []
     if len(day_set) == 0 and len(day_pairs) == 0:
         current_date = date.today()
@@ -47,7 +48,7 @@ def parse_select_days(book_conf):
                     if weekday not in book_conf['weekdays']:
                         continue
                 day_set.add(date_str)
-    return day_set
+    return day_set - exclude_day_set
 
 def init_book_conf():
     total_book_conf = yaml.safe_load(open(trans_var.config_path))
@@ -152,8 +153,8 @@ if __name__ == "__main__":
             logger.info("update conf because current_modified_time %u is larger than last_modified_time %u" % (current_modified_time, last_modified_time))
             last_modified_time = current_modified_time
             total_book_conf, all_select_days = update_cand_config(cand_map)
-            if len(all_select_days) == 0 or len(total_book_conf) == 0:
-                logger.error("Get book conf size is: " + str(len(total_book_conf)))
+            if len(all_select_days) == 0 or len(total_book_conf) <= 1:
+                logger.error("Get book conf size is: " + str(len(total_book_conf)) + " all_select_day_size: " + str(len(all_select_days)))
                 sys.exit(2)
         else:
             time.sleep(10)
