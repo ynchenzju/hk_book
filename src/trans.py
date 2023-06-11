@@ -135,10 +135,14 @@ def update_cand_config(cand_map):
         else:
             cand_map[id_name] = Candidate(id_name, total_book_conf)
 
+    delete_id_name = []
     for id_name in cand_map:
         if id_name not in total_book_conf:
             shutil.move(cand_map[id_name].log_path, cand_map[id_name].delete_log_path)
-            del cand_map[id_name]
+            delete_id_name.append(id_name)
+
+    for id_name in delete_id_name:
+        del cand_map[id_name]
     return total_book_conf, all_select_days
 
 

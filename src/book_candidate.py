@@ -148,9 +148,11 @@ class Candidate:
                         self.cand_region_time[region] = []
                     self.cand_region_time[region].append({'ts': daytime['ts'], 'dt': daytime['dt'], 'time_zone': valid_time_zone})
 
+        self.log_record_list.append('region_day_time: %s' % json.dumps(region_day_time))
         self.log_record_list.append('filter_by_region: %s' % '|'.join(filter_by_region))
         self.log_record_list.append('filter_by_day_condition: %s' % '|'.join(filter_by_day_condition))
         self.log_record_list.append('filter_by_certain_time: %s' % '|'.join(filter_by_certain_time))
+        self.log_record_list.append('candidate_day_time: %s' % json.dumps(self.cand_region_time))
 
     def change_app_time(self):
         self.change_app_req = trans_var.change_app_req.copy()
@@ -230,8 +232,8 @@ class Candidate:
                     new_region_time[region].append(daytime)
         self.old_region_day_time = self.region_day_time
         self.region_day_time = new_region_time
-        self.log_record_list.append(json.dumps(self.old_region_day_time))
-        self.log_record_list.append(json.dumps(self.region_day_time))
+        self.log_record_list.append("total_region_daytime is: " + json.dumps(self.old_region_day_time))
+        self.log_record_list.append("filter_by_need_days is: " + json.dumps(self.region_day_time))
 
 
     def http_req_avail_time(self, req_link, req_body, daytime):
