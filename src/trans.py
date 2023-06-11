@@ -138,6 +138,8 @@ def update_cand_config(cand_map):
     delete_id_name = []
     for id_name in cand_map:
         if id_name not in total_book_conf:
+            if os.path.exists(cand_map[id_name].delete_log_path):
+                shutil.rmtree(cand_map[id_name].delete_log_path)
             shutil.move(cand_map[id_name].log_path, cand_map[id_name].delete_log_path)
             delete_id_name.append(id_name)
 
