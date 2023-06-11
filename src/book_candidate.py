@@ -70,6 +70,9 @@ class Candidate:
                 self.sess = requests.Session()
                 if sys.platform == 'linux':
                     self.sess.proxies = {'http': 'socks5://127.0.0.1:9050', 'https': 'socks5://127.0.0.1:9050'}
+                    response = self.sess.get('https://api.ipify.org?format=json')
+                    ip_address = response.json()['ip']
+                    self.logger.info('The session ip address is: ' + ip_address)
                 self.session_begin_time = int(time.time())
                 r = self.sess.get(trans_var.NEW_TICKET_API)
                 url = urlparse(r.url)
