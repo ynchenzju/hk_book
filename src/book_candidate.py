@@ -64,6 +64,7 @@ class Candidate:
         if int(time.time()) - self.session_begin_time < sess_time_interval and self.sess != None:
             return
 
+        try_cnt = 5
         self.book_res = {}
         while True:
             try:
@@ -83,14 +84,17 @@ class Candidate:
                     self.check_tcCaptcha(self.sess)
                 else:
                     self.logger.error('the web ticketid is null, please check!!')
+                    self.try_cnt -= 1
             except Exception as e:
                 self.logger.error('An error occurred in get_ticketid or check_tcCaptcha: %s', str(e), exc_info=True)
+                self.try_cnt -= 1
 
-            if len(self.book_res) > 0:
+            if len(self.book_res) > 0 or try_cnt == 0:
                 break
             self.sess.close()
             trans_var.renew_tor_ip()
             time.sleep(1)
+        return try_cnt
 
 
     def get_pic(self, s):

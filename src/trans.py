@@ -98,17 +98,38 @@ def send_succ_message(id_name, book_conf, book_result):
     except Exception as e:
         logger.error('send wxpusher message failed: %s', str(e), exc_info=True)
 
+def send_error_message(id_name):
+    json_temp = {
+        "appToken": "AT_7FOnGTv0fw0BSrAGDkVeEl2hJEjcBwwB",
+        "summary": "以下用户异常",
+        "contentType": 1,
+        "verifyPay": False,
+        'uids': ['UID_DTNWzSlwh04rIEPWOiCJ4wPqcz4P'],
+        'content': id_name
+    }
+    json_payload = json.dumps(json_temp)
+    post_url = 'https://wxpusher.zjiecode.com/api/send/message'
+    headers = {"Content-Type": "application/json"}
+    try:
+        response_wx = requests.post(post_url, data=json_payload, headers=headers)
+    except Exception as e:
+        logger.error('send wxpusher message failed: %s', str(e), exc_info=True)
 
 def run_query_program(candidate, region_day_time):
     candidate.filter_region_time(region_day_time)
     if len(candidate.cand_region_time) > 0:
-        candidate.build_session()
+        try_cnt = candidate.build_session()
+        if try_cnt == 0 and len(candidate.book_res) == 0:
+            return "Error:" + candidate.id_name
         candidate.change_app_time()
         if candidate.succ_flag == 1:
             send_succ_message(candidate.id_name, candidate.book_conf, candidate.book_result)
     candidate.record_log()
     time_gap = 1800 if len(candidate.cand_region_time) > 0 else 3600
-    candidate.build_session(time_gap)
+    try_cnt = candidate.build_session(time_gap)
+    if try_cnt == 0 and len(candidate.book_res) == 0:
+        return "Error:" + candidate.id_name
+
     return candidate.id_name
 
 
@@ -165,7 +186,12 @@ if __name__ == "__main__":
         else:
             time.sleep(3)
 
-        cand_map[sentinal].build_session()
+        try_cnt = cand_map[sentinal].build_session()
+        if try_cnt == 0 and len(cand_map[sentinal].book_res) == 0:
+            send_error_message('sentinal')
+            del cand_map[sentinal]
+            logger.error("build sentinal session failed!")
+            break
         cand_map[sentinal].multi_request_avail_date()
         cand_map[sentinal].filter_date(all_select_days)
         cand_map[sentinal].multi_req_avail_time()
@@ -182,7 +208,11 @@ if __name__ == "__main__":
 
             for thread in concurrent.futures.as_completed(results):
                 id_name = thread.result()
-                if cand_map[id_name].succ_flag == 1:
+                if id_name not in cand_map:
+                    real_id_name = id_name.split(":")[1]
+                    del cand_map[real_id_name]
+                    send_error_message(real_id_name)
+                elif cand_map[id_name].succ_flag == 1:
                     succ_id_name.append(id_name)
 
         if len(succ_id_name) > 0:
