@@ -58,7 +58,8 @@ def init_book_conf():
         book_conf['office_ids'] = set(book_conf['office_ids'].split(",")) if len(book_conf['office_ids']) > 0 else set()
         book_conf['weekdays'] = set(book_conf['weekdays'].split(",")) if len(book_conf['weekdays']) > 0 else set()
         book_conf['select_days'] = parse_select_days(book_conf)
-        all_select_days |= book_conf['select_days']
+        if id_name != trans_var.sentinal:
+            all_select_days |= book_conf['select_days']
     return total_book_conf, all_select_days
 
 
@@ -141,7 +142,7 @@ def update_cand_config(cand_map):
 
 
 if __name__ == "__main__":
-    sentinal = 'sentinal'
+    sentinal = trans_var.sentinal
     last_modified_time = 0
     cand_map = {}
     count = 0
