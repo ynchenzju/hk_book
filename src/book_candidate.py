@@ -65,6 +65,7 @@ class Candidate:
             return
 
         try_cnt = 5
+        max_tc_cnt = 5
         self.book_res = {}
         while True:
             try:
@@ -81,19 +82,21 @@ class Candidate:
                 ticketid = parse.parse_qs(query).get('ticketId')[0]
                 if ticketid != '':
                     self.normal_header['ticketId'] = ticketid
-                    self.check_tcCaptcha(self.sess)
+                    try_tc_cnt = self.check_tcCaptcha(self.sess)
+                    if try_tc_cnt > max_tc_cnt and len(self.book_res) == 0:
+                        try_cnt = 0
+                        break
                 else:
                     self.logger.error('the web ticketid is null, please check!!')
-                    self.try_cnt -= 1
             except Exception as e:
                 self.logger.error('An error occurred in get_ticketid or check_tcCaptcha: %s', str(e), exc_info=True)
-                self.try_cnt -= 1
 
             if len(self.book_res) > 0 or try_cnt == 0:
                 break
             self.sess.close()
             trans_var.renew_tor_ip()
             time.sleep(1)
+            try_cnt -= 1
         return try_cnt
 
 
@@ -111,6 +114,7 @@ class Candidate:
 
     def check_tcCaptcha(self, s):
         try:
+            max_try_cnt = 5
             try_tcCaptcha_cnt = 1
             self.rebook_body['captchaCode'] = self.get_pic(s)
             time.sleep(3)
@@ -122,10 +126,15 @@ class Candidate:
                 r = s.post(trans_var.book_enquiry_link, data=json.dumps(self.rebook_body), headers=self.normal_header)
                 self.logger.warning("try_tcCaptcha_cnt: %u, res: %s, link: %s, result: %s" % (
                 try_tcCaptcha_cnt, self.rebook_body['captchaCode'], self.rebook_body['captchaId'], r.text))
+                if try_tcCaptcha_cnt > max_try_cnt:
+                    break
             self.book_res = json.loads(r.text)
+            if try_tcCaptcha_cnt > max_try_cnt and r.status_code != 200:
+                self.book_res = {}
         except Exception as e:
             self.logger.error('An error occurred in check_tcCaptcha : %s', str(e), exc_info=True)
             self.book_res = {}
+        return try_tcCaptcha_cnt
 
 
     def filter_region_time(self, region_day_time):
