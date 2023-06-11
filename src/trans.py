@@ -163,7 +163,7 @@ if __name__ == "__main__":
                 logger.error("Get book conf size is: " + str(len(total_book_conf)) + " all_select_day_size: " + str(len(all_select_days)))
                 sys.exit(2)
         else:
-            time.sleep(10)
+            time.sleep(3)
 
         cand_map[sentinal].build_session()
         cand_map[sentinal].multi_request_avail_date()

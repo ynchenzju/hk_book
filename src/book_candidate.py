@@ -90,7 +90,7 @@ class Candidate:
                 break
             self.sess.close()
             trans_var.renew_tor_ip()
-            time.sleep(10)
+            time.sleep(1)
 
 
     def get_pic(self, s):
