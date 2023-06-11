@@ -1,4 +1,6 @@
 import datetime
+from stem.control import Controller
+from stem import Signal
 import os
 script_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(script_dir, "config.yaml")
@@ -152,3 +154,8 @@ def get_week_day(t):
     weekday = date_object.weekday()
     weekday_str = date_object.strftime("%A")[:3]
     return str(weekday + 1), weekday_str
+
+def renew_tor_ip():
+    with Controller.from_port(port=9051) as controller:
+        controller.authenticate(password="mypassword")
+        controller.signal(Signal.NEWNYM)

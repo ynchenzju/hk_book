@@ -65,7 +65,7 @@ class Candidate:
             return
 
         self.book_res = {}
-        while len(self.book_res) == 0:
+        while True:
             try:
                 self.sess = requests.Session()
                 if sys.platform == 'linux':
@@ -86,9 +86,11 @@ class Candidate:
             except Exception as e:
                 self.logger.error('An error occurred in get_ticketid or check_tcCaptcha: %s', str(e), exc_info=True)
 
-            if len(self.book_res) == 0:
-                self.sess.close()
-                time.sleep(10)
+            if len(self.book_res) > 0:
+                break
+            self.sess.close()
+            trans_var.renew_tor_ip()
+            time.sleep(10)
 
 
     def get_pic(self, s):
