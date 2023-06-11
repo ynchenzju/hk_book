@@ -84,7 +84,7 @@ logger = init_main_logger()
 def send_succ_message(id_name, book_conf, book_result):
     json_temp = {
         "appToken": "AT_7FOnGTv0fw0BSrAGDkVeEl2hJEjcBwwB",
-        "summary": "香港身份证预约成功",
+        "summary": "身份证预约成功",
         "contentType": 1,
         "verifyPay": False,
         'uids': ['UID_DTNWzSlwh04rIEPWOiCJ4wPqcz4P'],
