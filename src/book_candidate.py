@@ -68,6 +68,8 @@ class Candidate:
         while len(self.book_res) == 0:
             try:
                 self.sess = requests.Session()
+                if sys.platform == 'linux':
+                    self.sess.proxies = {'http': 'socks5://127.0.0.1:9050', 'https': 'socks5://127.0.0.1:9050'}
                 self.session_begin_time = int(time.time())
                 r = self.sess.get(trans_var.NEW_TICKET_API)
                 url = urlparse(r.url)
