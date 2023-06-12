@@ -139,7 +139,8 @@ def clear_cand_info(config_path, succ_id_name, cand_map):
         tmp_book_conf = yaml.safe_load(open(config_path))
         for id_name in succ_id_name:
             shutil.move(cand_map[id_name].log_path, cand_map[id_name].succ_log_path)
-            with open(cand_map[id_name].succ_config_path, 'w') as succ_yaml:
+            succ_config_path = cand_map[id_name].succ_log_path + "/" + id_name + ".yaml"
+            with open(succ_config_path, 'w') as succ_yaml:
                 yaml.dump({id_name: tmp_book_conf[id_name]}, succ_yaml)
             tmp_book_conf.pop(id_name)
             del cand_map[id_name]
