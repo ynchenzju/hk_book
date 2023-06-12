@@ -1,5 +1,7 @@
 import yaml
 import os
+from stem.control import Controller
+from stem import Signal
 script_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(script_dir, "slow_config.yaml")
 
@@ -123,3 +125,8 @@ def fill_change_app_req(book_res):
         change_app_req['applicants'][-1]['ageInd'] = applicant['ageInd']
         change_app_req['applicants'][-1]['prefilInd'] = applicant['prefilInd']
         change_app_req['applicant'].append(change_app_req['applicants'][-1])
+
+def renew_tor_ip():
+    with Controller.from_port(port=9051) as controller:
+        controller.authenticate(password="mypassword")
+        controller.signal(Signal.NEWNYM)

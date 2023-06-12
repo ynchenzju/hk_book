@@ -410,6 +410,26 @@ def run_query_program(s, book_res):
     return succ_flag, book_result
 
 
+def make_sess():
+    if sys.platform != 'linux':
+        return requests.Session()
+    try_cnt = 6
+    s = None
+    while try_cnt > 0:
+        renew_tor_ip()
+        s = requests.Session()
+        s.proxies = {'http': 'socks5://127.0.0.1:9050', 'https': 'socks5://127.0.0.1:9050'}
+        try:
+            response = s.get('https://checkip.amazonaws.com')
+            ip_address = response.text.strip()
+            logger.info('The session ip address is: ' + ip_address)
+            break
+        except:
+            try_cnt -= 1
+            logger.error('request checkip amazonaws failed, try_cnt %u renew ip' % try_cnt)
+        s.close()
+    return s if try_cnt > 0 else None
+
 if __name__ == "__main__":
     if len(book_conf) == 0:
         logger.error("Get book conf size is: " + str(len(book_conf)))
@@ -418,17 +438,22 @@ if __name__ == "__main__":
     succ_flag = 0
     while True:
         cur_time = get_cur_time()
-        if cur_time >= "0030" and cur_time <= "0800":
+        if cur_time >= "0030" and cur_time <= "0730":
             logger.info("enter mid night and stop rob")
             sys.exit(1)
 
-        succ_flag = 0
-        s = requests.Session()
+        s = make_sess()
+        if s is None:
+            logger.error("make session failed and can't get ip address")
+            sys.exit(3)
+
         ticketid = get_ticketid(s)
         if ticketid == '':
             s.close()
             time.sleep(10)
+            continue
 
+        succ_flag = 0
         normal_header['ticketId'] = ticketid
         book_res = check_tcCaptcha(s)
         if len(book_res) == 0:
