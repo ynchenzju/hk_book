@@ -125,10 +125,10 @@ def run_query_program(candidate, region_day_time):
         if candidate.succ_flag == 1:
             send_succ_message(candidate.id_name, candidate.book_conf, candidate.book_result)
     candidate.record_log()
-    time_gap = 1800 if len(candidate.cand_region_time) > 0 else 3600
-    try_cnt = candidate.build_session(time_gap)
-    if try_cnt == 0 and len(candidate.book_res) == 0:
-        return "Error:" + candidate.id_name
+    # time_gap = 1800 if len(candidate.cand_region_time) > 0 else 3600
+    # try_cnt = candidate.build_session(time_gap)
+    # if try_cnt == 0 and len(candidate.book_res) == 0:
+    #     return "Error:" + candidate.id_name
 
     return candidate.id_name
 

@@ -60,7 +60,7 @@ class Candidate:
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
-    def build_session(self, sess_time_interval = 1150):
+    def build_session(self, sess_time_interval = 1000):
         if int(time.time()) - self.session_begin_time < sess_time_interval and self.sess != None:
             return
 
@@ -208,11 +208,12 @@ class Candidate:
                         self.succ_flag = 1
                         break
                     else:
-                        self.log_record_list.append(self.book_result + "|" + r.text)
+                        self.log_record_list.append(self.book_result + "|" + r.text + '|' + str(self.change_app_req['changeSize']))
                 if self.succ_flag == 1:
                     break
             if self.succ_flag == 1:
                 break
+        self.log_record_list.append(json.dumps(self.change_app_req))
 
     def http_req_avail_date(self, region_en, req_link, req_avail_date_body):
         result = []
