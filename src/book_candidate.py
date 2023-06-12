@@ -67,14 +67,23 @@ class Candidate:
         try_cnt = 5
         max_tc_cnt = 5
         self.book_res = {}
-        while True:
+        while try_cnt >= 0:
             try:
                 self.sess = requests.Session()
                 if sys.platform == 'linux':
                     self.sess.proxies = {'http': 'socks5://127.0.0.1:9050', 'https': 'socks5://127.0.0.1:9050'}
-                    response = self.sess.get('https://api.ipify.org?format=json')
-                    ip_address = response.json()['ip']
-                    self.logger.info('The session ip address is: ' + ip_address)
+                    try:
+                        response = self.sess.get('https://checkip.amazonaws.com')
+                        ip_address = response.text.strip()
+                        self.logger.info('The session ip address is: ' + ip_address)
+                    except:
+                        try_cnt -= 1
+                        self.logger.error('request checkip amazonaws failed, try_cnt %u renew ip' % try_cnt)
+                        self.sess.close()
+                        trans_var.renew_tor_ip()
+                        time.sleep(1)
+                        continue
+
                 self.session_begin_time = int(time.time())
                 r = self.sess.get(trans_var.NEW_TICKET_API)
                 url = urlparse(r.url)
@@ -91,12 +100,12 @@ class Candidate:
             except Exception as e:
                 self.logger.error('An error occurred in get_ticketid or check_tcCaptcha: %s', str(e), exc_info=True)
 
-            if len(self.book_res) > 0 or try_cnt == 0:
+            if len(self.book_res) > 0:
                 break
             self.sess.close()
             trans_var.renew_tor_ip()
-            time.sleep(1)
             try_cnt -= 1
+            time.sleep(1)
         return try_cnt
 
 
