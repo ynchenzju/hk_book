@@ -418,9 +418,9 @@ if __name__ == "__main__":
     succ_flag = 0
     while True:
         cur_time = get_cur_time()
-        # if cur_time >= "0030" and cur_time <= "0830":
-        #     logger.info("enter mid night and stop rob")
-        #     sys.exit(1)
+        if cur_time >= "0030" and cur_time <= "0800":
+            logger.info("enter mid night and stop rob")
+            sys.exit(1)
 
         succ_flag = 0
         s = requests.Session()
@@ -445,13 +445,13 @@ if __name__ == "__main__":
                 send_succ_message(book_conf, book_result)
                 shutil.move(log_path, succ_log_path)
                 break
-            time.sleep(15)
+            time.sleep(4)
             same_ticket_cnt += 1
 
         s.close()
         if succ_flag:
             break
-        time.sleep(60)
+        time.sleep(5)
 
     if succ_flag == 1:
         logger.info("get hk book successfully")

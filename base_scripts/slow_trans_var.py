@@ -4,14 +4,14 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(script_dir, "slow_config.yaml")
 
 
-NEW_TICKET_API = "https://eservices.es2.immd.gov.hk/surgecontrolgate/ticket/getTicketGet?svcId=579&applicationId=579&language=zh&country=HK&qitq=b7c0412c-ed4b-4976-9a9c-b4991003a7be&qitp=0729de79-9798-4618-a9ef-849a2295def7&qitts=1684147349&qitc=immdiconsprod&qite=immdsm2&qitrt=Safetynet&qith=56565ff4500e9b86c9926c4813576d89"
-# NEW_TICKET_API = "https://eservices.es2.immd.gov.hk/surgecontrolgate/ticket/getTicketGet?svcId=579&applicationId=579&language=zh&country=HK&qitq=cda5611b-fd16-45a4-8b0d-614726067e65&qitp=8869b7c9-9396-43bc-8954-db9e4b916ff2&qitts=1685767999&qitc=immdiconsprod&qite=immdsm2&qitrt=Safetynet&qith=98fafbfc7b5444f708cd74c0308d26e1"
+# NEW_TICKET_API = "https://eservices.es2.immd.gov.hk/surgecontrolgate/ticket/getTicketGet?svcId=579&applicationId=579&language=zh&country=HK&qitq=b7c0412c-ed4b-4976-9a9c-b4991003a7be&qitp=0729de79-9798-4618-a9ef-849a2295def7&qitts=1684147349&qitc=immdiconsprod&qite=immdsm2&qitrt=Safetynet&qith=56565ff4500e9b86c9926c4813576d89"
+NEW_TICKET_API = "https://eservices.es2.immd.gov.hk/surgecontrolgate/ticket/getTicketGet?svcId=579&applicationId=579&language=zh&country=HK&qitq=cda5611b-fd16-45a4-8b0d-614726067e65&qitp=8869b7c9-9396-43bc-8954-db9e4b916ff2&qitts=1685767999&qitc=immdiconsprod&qite=immdsm2&qitrt=Safetynet&qith=98fafbfc7b5444f708cd74c0308d26e1"
 normal_header = {
         'Accept': 'application/json, text/plain, */*',
         'Accept-Encoding': 'gzip, deflate, br',
         'Accept-Language': 'zh-CN,zh;q=0.9',
         'Connection': 'keep-alive',
-        'Cookie': 'EGIS_RID=.1; IMMD_RID=.2',
+        'Cookie': 'EGIS_RID=.1; IMMD_RID=.1',
         'Host': 'webapp.es2.immd.gov.hk',
         'Referer': 'https://webapp.es2.immd.gov.hk/smartics2-client/ropbooking/zh-HK/eservices/ropChangeCancelAppointment/step1',
         'Sec-Fetch-Dest': 'empty',
