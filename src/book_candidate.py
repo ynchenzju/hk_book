@@ -60,7 +60,7 @@ class Candidate:
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
-    def build_session(self, sess_time_interval = 1000):
+    def build_session(self, sess_time_interval = 900):
         if int(time.time()) - self.session_begin_time < sess_time_interval and self.sess != None:
             return
 
@@ -84,7 +84,6 @@ class Candidate:
                         time.sleep(1)
                         continue
 
-                self.session_begin_time = int(time.time())
                 r = self.sess.get(trans_var.NEW_TICKET_API)
                 url = urlparse(r.url)
                 query = url.query
@@ -101,6 +100,7 @@ class Candidate:
                 self.logger.error('An error occurred in get_ticketid or check_tcCaptcha: %s', str(e), exc_info=True)
 
             if len(self.book_res) > 0:
+                self.session_begin_time = int(time.time())
                 break
             self.sess.close()
             trans_var.renew_tor_ip()
