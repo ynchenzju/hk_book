@@ -62,13 +62,14 @@ class Candidate:
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
+
     def renew_tor_ip(self):
         with Controller.from_port(port=9051) as controller:
             controller.authenticate(password="mypassword")
             controller.signal(Signal.NEWNYM)
 
-    def build_session(self, sess_time_interval = 900):
-        if int(time.time()) - self.session_begin_time < sess_time_interval and self.sess != None:
+    def build_session(self, sess_time_interval = 950):
+        if int(time.time()) - self.session_begin_time < sess_time_interval: # and self.sess is not None:
             return
 
         try_cnt = 5
