@@ -12,8 +12,6 @@ import sys
 import shutil
 import re
 import time
-from stem.control import Controller
-from stem import Signal
 script_dir = os.path.dirname(os.path.abspath(__file__))
 trans_var_path = os.path.join(script_dir, "trans_var.py")
 sys.path.append(trans_var_path)
@@ -62,14 +60,8 @@ class Candidate:
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
-
-    def renew_tor_ip(self):
-        with Controller.from_port(port=9051) as controller:
-            controller.authenticate(password="mypassword")
-            controller.signal(Signal.NEWNYM)
-
-    def build_session(self, sess_time_interval = 950):
-        if int(time.time()) - self.session_begin_time < sess_time_interval: # and self.sess is not None:
+    def build_session(self, sess_time_interval = 900):
+        if int(time.time()) - self.session_begin_time < sess_time_interval and self.sess != None:
             return
 
         try_cnt = 5
@@ -88,7 +80,7 @@ class Candidate:
                         try_cnt -= 1
                         self.logger.error('request checkip amazonaws failed, try_cnt %u renew ip' % try_cnt)
                         self.sess.close()
-                        self.renew_tor_ip()
+                        trans_var.renew_tor_ip()
                         time.sleep(1)
                         continue
 
@@ -111,7 +103,7 @@ class Candidate:
                 self.session_begin_time = int(time.time())
                 break
             self.sess.close()
-            self.renew_tor_ip()
+            trans_var.renew_tor_ip()
             try_cnt -= 1
             time.sleep(1)
         return try_cnt
@@ -153,6 +145,29 @@ class Candidate:
             self.book_res = {}
         return try_tcCaptcha_cnt
 
+    def filter_region_time_v2(self, region_day_time):
+        self.cand_region_time = {}
+        filter_by_certain_time = []
+        for region in region_day_time:
+            for daytime in region_day_time[region]:
+                valid_time_zone = []
+                if len(self.book_conf['time_intervals']) > 0:
+                    for book_time in daytime['time_zone']:
+                        if book_time[0] < self.book_conf['time_intervals'][0] or book_time[0] > self.book_conf['time_intervals'][1]:
+                            filter_by_certain_time.append(book_time[0])
+                            continue
+                        valid_time_zone.append(book_time)
+                else:
+                    valid_time_zone = daytime['time_zone']
+
+                if len(valid_time_zone) > 0:
+                    if region not in self.cand_region_time:
+                        self.cand_region_time[region] = []
+                    self.cand_region_time[region].append({'ts': daytime['ts'], 'dt': daytime['dt'], 'time_zone': valid_time_zone})
+
+        self.log_record_list.append('region_day_time: %s' % json.dumps(region_day_time))
+        self.log_record_list.append('filter_by_certain_time: %s' % '|'.join(filter_by_certain_time))
+        self.log_record_list.append('candidate_day_time: %s' % json.dumps(self.cand_region_time))
 
     def filter_region_time(self, region_day_time):
         self.cand_region_time = {}
@@ -272,7 +287,7 @@ class Candidate:
         self.region_day_time = {}
         with concurrent.futures.ThreadPoolExecutor() as executor:
             results = []
-            for region_en in trans_var.region_map:
+            for region_en in self.book_conf['office_ids']:
                 new_req_avail_date_body['targetOfficeId'] = region_en
                 thread = executor.submit(self.http_req_avail_date, region_en, trans_var.req_date_link, new_req_avail_date_body.copy())
                 results.append(thread)
