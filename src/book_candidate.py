@@ -60,7 +60,7 @@ class Candidate:
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
-    def build_session(self, sess_time_interval = 1000):
+    def build_session(self, sess_time_interval = 900):
         if int(time.time()) - self.session_begin_time < sess_time_interval and self.sess != None:
             return
 
@@ -84,7 +84,6 @@ class Candidate:
                         time.sleep(1)
                         continue
 
-                self.session_begin_time = int(time.time())
                 r = self.sess.get(trans_var.NEW_TICKET_API)
                 url = urlparse(r.url)
                 query = url.query
@@ -101,6 +100,7 @@ class Candidate:
                 self.logger.error('An error occurred in get_ticketid or check_tcCaptcha: %s', str(e), exc_info=True)
 
             if len(self.book_res) > 0:
+                self.session_begin_time = int(time.time())
                 break
             self.sess.close()
             trans_var.renew_tor_ip()
@@ -183,9 +183,32 @@ class Candidate:
         self.log_record_list.append('filter_by_certain_time: %s' % '|'.join(filter_by_certain_time))
         self.log_record_list.append('candidate_day_time: %s' % json.dumps(self.cand_region_time))
 
+    def fill_change_app_req(self, change_app_req, book_res):
+        group_size = int(book_res['applicantNum'])
+        change_app_req['ern'] = book_res['ern']
+        change_app_req['trn'] = book_res['trn']
+        change_app_req['oriErn'] = book_res['ern']
+        change_app_req['oriTrn'] = book_res['trn']
+        change_app_req['nature'] = book_res['nature']
+        change_app_req['groupSize'] = group_size
+        change_app_req['originalgroupSize'] = group_size
+        change_app_req['enquiryCode'] = book_res['enquiryCode']
+        change_app_req['changeSize'] = group_size
+        change_app_req['changMode'] = trans_var.change_mode[group_size]
+
+        for applicant in book_res['listAppointmentInfo']:
+            change_app_req['applicants'].append(trans_var.app_instance.copy())
+            change_app_req['applicants'][-1]['apmidType'] = applicant['apmidType']
+            change_app_req['applicants'][-1]['apmidCode'] = applicant['apmidCode']
+            change_app_req['applicants'][-1]['appDob'] = applicant['appDob']
+            change_app_req['applicants'][-1]['groupMemId'] = applicant['groupMemId']
+            change_app_req['applicants'][-1]['ageInd'] = applicant['ageInd']
+            change_app_req['applicants'][-1]['prefilInd'] = applicant['prefilInd']
+            change_app_req['applicant'].append(change_app_req['applicants'][-1])
+
     def change_app_time(self):
         self.change_app_req = trans_var.change_app_req.copy()
-        trans_var.fill_change_app_req(self.change_app_req, self.book_res)
+        self.fill_change_app_req(self.change_app_req, self.book_res)
         for region in self.cand_region_time:
             for avail_time in self.cand_region_time[region]:
                 if len(avail_time['time_zone']) == 0:
@@ -214,6 +237,7 @@ class Candidate:
             if self.succ_flag == 1:
                 break
         self.log_record_list.append(json.dumps(self.change_app_req))
+        self.log_record_list.append(json.dumps(self.book_res))
 
     def http_req_avail_date(self, region_en, req_link, req_avail_date_body):
         result = []
