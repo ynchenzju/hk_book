@@ -12,6 +12,7 @@ import sys
 import shutil
 import re
 import time
+import copy
 from stem.control import Controller
 from stem import Signal
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -23,12 +24,12 @@ class Candidate:
     def __init__(self, id_name, total_book_conf):
         self.book_conf = total_book_conf[id_name]
         self.id_name = id_name
-        self.rebook_body = trans_var.rebook_body.copy()
+        self.rebook_body = copy.deepcopy(trans_var.rebook_body)
         self.rebook_body['identityCode'] = self.book_conf['id_code']
         self.rebook_body['identityType'] = '2' if self.book_conf['id_code'][0] >= '0' and self.book_conf['id_code'][0] <= '9' else '1'
         self.rebook_body['enquiryCode'] = self.book_conf['query_code']
-        self.normal_header = trans_var.normal_header.copy()
-        self.change_app_req = trans_var.change_app_req.copy()
+        self.normal_header = copy.deepcopy(trans_var.normal_header)
+        self.change_app_req = copy.deepcopy(trans_var.change_app_req)
         self.session_begin_time = 0
         self.sess = None
         self.log_record_list = []
@@ -63,14 +64,8 @@ class Candidate:
         self.logger.addHandler(handler)
 
 
-    def renew_tor_ip(self):
-        with Controller.from_port(port=9051) as controller:
-            controller.authenticate(password="mypassword")
-            controller.signal(Signal.NEWNYM)
-
     def build_session(self, sess_time_interval = 950):
-        if int(time.time()) - self.session_begin_time < sess_time_interval: # and self.sess is not None:
-            return
+        if int(time.time()) - self.session_begin_time < sess_time_interval:  # and self.sess is not None:
 
         try_cnt = 5
         max_tc_cnt = 5
@@ -88,7 +83,7 @@ class Candidate:
                         try_cnt -= 1
                         self.logger.error('request checkip amazonaws failed, try_cnt %u renew ip' % try_cnt)
                         self.sess.close()
-                        self.renew_tor_ip()
+                        trans_var.renew_tor_ip()
                         time.sleep(1)
                         continue
 
@@ -111,7 +106,7 @@ class Candidate:
                 self.session_begin_time = int(time.time())
                 break
             self.sess.close()
-            self.renew_tor_ip()
+            trans_var.renew_tor_ip()
             try_cnt -= 1
             time.sleep(1)
         return try_cnt
@@ -191,32 +186,33 @@ class Candidate:
         self.log_record_list.append('filter_by_certain_time: %s' % '|'.join(filter_by_certain_time))
         self.log_record_list.append('candidate_day_time: %s' % json.dumps(self.cand_region_time))
 
-    def fill_change_app_req(self, change_app_req, book_res):
-        group_size = int(book_res['applicantNum'])
-        change_app_req['ern'] = book_res['ern']
-        change_app_req['trn'] = book_res['trn']
-        change_app_req['oriErn'] = book_res['ern']
-        change_app_req['oriTrn'] = book_res['trn']
-        change_app_req['nature'] = book_res['nature']
-        change_app_req['groupSize'] = group_size
-        change_app_req['originalgroupSize'] = group_size
-        change_app_req['enquiryCode'] = book_res['enquiryCode']
-        change_app_req['changeSize'] = group_size
-        change_app_req['changMode'] = trans_var.change_mode[group_size]
+    def fill_change_app_req(self):
+        group_size = int(self.book_res['applicantNum'])
+        self.change_app_req['ern'] = self.book_res['ern']
+        self.change_app_req['trn'] = self.book_res['trn']
+        self.change_app_req['oriErn'] = self.book_res['ern']
+        self.change_app_req['oriTrn'] = self.book_res['trn']
+        self.change_app_req['nature'] = self.book_res['nature']
+        self.change_app_req['groupSize'] = group_size
+        self.change_app_req['originalgroupSize'] = group_size
+        self.change_app_req['enquiryCode'] = self.book_res['enquiryCode']
+        self.change_app_req['changeSize'] = group_size
+        self.change_app_req['changMode'] = trans_var.change_mode[group_size]
+        self.change_app_req['applicants'] = []
 
-        for applicant in book_res['listAppointmentInfo']:
-            change_app_req['applicants'].append(trans_var.app_instance.copy())
-            change_app_req['applicants'][-1]['apmidType'] = applicant['apmidType']
-            change_app_req['applicants'][-1]['apmidCode'] = applicant['apmidCode']
-            change_app_req['applicants'][-1]['appDob'] = applicant['appDob']
-            change_app_req['applicants'][-1]['groupMemId'] = applicant['groupMemId']
-            change_app_req['applicants'][-1]['ageInd'] = applicant['ageInd']
-            change_app_req['applicants'][-1]['prefilInd'] = applicant['prefilInd']
-            change_app_req['applicant'].append(change_app_req['applicants'][-1])
+        for applicant in self.book_res['listAppointmentInfo']:
+            self.change_app_req['applicants'].append(copy.deepcopy(trans_var.app_instance))
+            self.change_app_req['applicants'][-1]['apmidType'] = applicant['apmidType']
+            self.change_app_req['applicants'][-1]['apmidCode'] = applicant['apmidCode']
+            self.change_app_req['applicants'][-1]['appDob'] = applicant['appDob']
+            self.change_app_req['applicants'][-1]['groupMemId'] = applicant['groupMemId']
+            self.change_app_req['applicants'][-1]['ageInd'] = applicant['ageInd']
+            self.change_app_req['applicants'][-1]['prefilInd'] = applicant['prefilInd']
+        self.change_app_req['applicant'] = self.change_app_req['applicants']
 
     def change_app_time(self):
-        self.change_app_req = trans_var.change_app_req.copy()
-        self.fill_change_app_req(self.change_app_req, self.book_res)
+        self.change_app_req = copy.deepcopy(trans_var.change_app_req)
+        trans_var.change_app_req(self.change_app_req, self.book_res)
         for region in self.cand_region_time:
             for avail_time in self.cand_region_time[region]:
                 if len(avail_time['time_zone']) == 0:
@@ -265,7 +261,7 @@ class Candidate:
         return {region_en: result}
 
     def multi_request_avail_date(self):
-        new_req_avail_date_body = trans_var.req_avail_date_body.copy()
+        new_req_avail_date_body = copy.deepcopy(trans_var.req_avail_date_body)
         new_req_avail_date_body['groupSize'] = int(self.book_res['applicantNum'])
         new_req_avail_date_body['nature'] = self.book_res['nature']
 
@@ -274,7 +270,7 @@ class Candidate:
             results = []
             for region_en in trans_var.region_map:
                 new_req_avail_date_body['targetOfficeId'] = region_en
-                thread = executor.submit(self.http_req_avail_date, region_en, trans_var.req_date_link, new_req_avail_date_body.copy())
+                thread = executor.submit(self.http_req_avail_date, region_en, trans_var.req_date_link, copy.deepcopy(new_req_avail_date_body))
                 results.append(thread)
 
             for thread in concurrent.futures.as_completed(results):
@@ -311,7 +307,7 @@ class Candidate:
 
 
     def multi_req_avail_time(self):
-        new_req_avail_time_body = trans_var.req_avail_time_body.copy()
+        new_req_avail_time_body = copy.deepcopy(trans_var.req_avail_time_body)
         new_req_avail_time_body['groupSize'] = int(self.book_res['applicantNum'])
         new_req_avail_time_body['nature'] = self.book_res['nature']
         params = []
@@ -320,7 +316,7 @@ class Candidate:
                 ts, dt = daytime['ts'], daytime['dt']
                 new_req_avail_time_body['targetOfficeId'] = region
                 new_req_avail_time_body['targetDate'] = dt
-                params.append((trans_var.req_time_link, new_req_avail_time_body.copy(), daytime))
+                params.append((trans_var.req_time_link, copy.deepcopy(new_req_avail_time_body), daytime))
 
         if len(params) > 0:
             with concurrent.futures.ThreadPoolExecutor() as executor:
