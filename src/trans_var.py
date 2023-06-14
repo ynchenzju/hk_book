@@ -1,4 +1,5 @@
 import datetime
+import copy
 from stem.control import Controller
 from stem import Signal
 import os
@@ -137,16 +138,18 @@ def fill_change_app_req(change_app_req, book_res):
     change_app_req['enquiryCode'] = book_res['enquiryCode']
     change_app_req['changeSize'] = group_size
     change_app_req['changMode'] = change_mode[group_size]
+    change_app_req['applicants'] = []
 
     for applicant in book_res['listAppointmentInfo']:
-        change_app_req['applicants'].append(app_instance.copy())
+        change_app_req['applicants'].append(copy.deepcopy(app_instance))
         change_app_req['applicants'][-1]['apmidType'] = applicant['apmidType']
         change_app_req['applicants'][-1]['apmidCode'] = applicant['apmidCode']
         change_app_req['applicants'][-1]['appDob'] = applicant['appDob']
         change_app_req['applicants'][-1]['groupMemId'] = applicant['groupMemId']
         change_app_req['applicants'][-1]['ageInd'] = applicant['ageInd']
         change_app_req['applicants'][-1]['prefilInd'] = applicant['prefilInd']
-        change_app_req['applicant'].append(change_app_req['applicants'][-1])
+
+    change_app_req['applicant'] = change_app_req['applicants']
 
 def get_week_day(t):
     date_format = "%Y-%m-%d"
