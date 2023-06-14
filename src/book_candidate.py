@@ -63,9 +63,9 @@ class Candidate:
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
 
+
     def build_session(self, sess_time_interval = 950):
         if int(time.time()) - self.session_begin_time < sess_time_interval:  # and self.sess is not None:
-            return
 
         try_cnt = 5
         max_tc_cnt = 5
