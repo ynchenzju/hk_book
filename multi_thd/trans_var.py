@@ -2,6 +2,7 @@ import datetime
 from stem.control import Controller
 from stem import Signal
 import os
+import copy
 script_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(script_dir, "config.yaml")
 
@@ -139,7 +140,7 @@ def fill_change_app_req(change_app_req, book_res):
     change_app_req['changMode'] = change_mode[group_size]
 
     for applicant in book_res['listAppointmentInfo']:
-        change_app_req['applicants'].append(app_instance.copy())
+        change_app_req['applicants'].append(copy.deepcopy(app_instance))
         change_app_req['applicants'][-1]['apmidType'] = applicant['apmidType']
         change_app_req['applicants'][-1]['apmidCode'] = applicant['apmidCode']
         change_app_req['applicants'][-1]['appDob'] = applicant['appDob']
