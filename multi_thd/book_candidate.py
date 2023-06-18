@@ -1,4 +1,5 @@
 import ddddocr
+import yaml
 import json
 import requests
 from urllib import parse
@@ -12,6 +13,9 @@ import sys
 import shutil
 import re
 import time
+import threading
+import fcntl
+import copy
 script_dir = os.path.dirname(os.path.abspath(__file__))
 trans_var_path = os.path.join(script_dir, "trans_var.py")
 sys.path.append(trans_var_path)
@@ -21,12 +25,12 @@ class Candidate:
     def __init__(self, id_name, total_book_conf):
         self.book_conf = total_book_conf[id_name]
         self.id_name = id_name
-        self.rebook_body = trans_var.rebook_body.copy()
+        self.rebook_body = copy.deepcopy(trans_var.rebook_body)
         self.rebook_body['identityCode'] = self.book_conf['id_code']
         self.rebook_body['identityType'] = '2' if self.book_conf['id_code'][0] >= '0' and self.book_conf['id_code'][0] <= '9' else '1'
         self.rebook_body['enquiryCode'] = self.book_conf['query_code']
-        self.normal_header = trans_var.normal_header.copy()
-        self.change_app_req = trans_var.change_app_req.copy()
+        self.normal_header = copy.deepcopy(trans_var.normal_header)
+        self.change_app_req = copy.deepcopy(trans_var.change_app_req)
         self.session_begin_time = 0
         self.sess = None
         self.log_record_list = []
@@ -35,6 +39,7 @@ class Candidate:
         self.succ_flag = 0
         self.book_result = ''
         self.region_day_time = {}
+        self.stop_event = threading.Event()
 
     def update_book_conf(self, id_name, total_book_conf):
         self.book_conf = total_book_conf[id_name]
@@ -50,6 +55,8 @@ class Candidate:
             shutil.rmtree(self.log_path)
         if os.path.exists(self.succ_log_path):
             shutil.rmtree(self.succ_log_path)
+        if os.path.exists(self.delete_log_path):
+            shutil.rmtree(self.delete_log_path)
         os.makedirs(self.log_path)
 
         self.logger = logging.getLogger(id_name)
@@ -63,11 +70,12 @@ class Candidate:
     def build_session(self, sess_time_interval = 900):
         if int(time.time()) - self.session_begin_time < sess_time_interval and self.sess != None:
             return
+        time.sleep(3)
 
         try_cnt = 5
         max_tc_cnt = 5
         self.book_res = {}
-        while try_cnt >= 0:
+        while try_cnt > 0:
             try:
                 self.sess = requests.Session()
                 if sys.platform == 'linux':
@@ -165,7 +173,6 @@ class Candidate:
                         self.cand_region_time[region] = []
                     self.cand_region_time[region].append({'ts': daytime['ts'], 'dt': daytime['dt'], 'time_zone': valid_time_zone})
 
-        self.log_record_list.append('region_day_time: %s' % json.dumps(region_day_time))
         self.log_record_list.append('filter_by_certain_time: %s' % '|'.join(filter_by_certain_time))
         self.log_record_list.append('candidate_day_time: %s' % json.dumps(self.cand_region_time))
 
@@ -220,17 +227,17 @@ class Candidate:
         change_app_req['changMode'] = trans_var.change_mode[group_size]
 
         for applicant in book_res['listAppointmentInfo']:
-            change_app_req['applicants'].append(trans_var.app_instance.copy())
+            change_app_req['applicants'].append(copy.deepcopy(trans_var.app_instance))
             change_app_req['applicants'][-1]['apmidType'] = applicant['apmidType']
             change_app_req['applicants'][-1]['apmidCode'] = applicant['apmidCode']
             change_app_req['applicants'][-1]['appDob'] = applicant['appDob']
             change_app_req['applicants'][-1]['groupMemId'] = applicant['groupMemId']
             change_app_req['applicants'][-1]['ageInd'] = applicant['ageInd']
             change_app_req['applicants'][-1]['prefilInd'] = applicant['prefilInd']
-            change_app_req['applicant'].append(change_app_req['applicants'][-1])
+        change_app_req['applicant'] = change_app_req['applicants']
 
     def change_app_time(self):
-        self.change_app_req = trans_var.change_app_req.copy()
+        self.change_app_req = copy.deepcopy(trans_var.change_app_req)
         self.fill_change_app_req(self.change_app_req, self.book_res)
         for region in self.cand_region_time:
             for avail_time in self.cand_region_time[region]:
@@ -280,7 +287,7 @@ class Candidate:
         return {region_en: result}
 
     def multi_request_avail_date(self):
-        new_req_avail_date_body = trans_var.req_avail_date_body.copy()
+        new_req_avail_date_body = copy.deepcopy(trans_var.req_avail_date_body)
         new_req_avail_date_body['groupSize'] = int(self.book_res['applicantNum'])
         new_req_avail_date_body['nature'] = self.book_res['nature']
 
@@ -289,7 +296,7 @@ class Candidate:
             results = []
             for region_en in self.book_conf['office_ids']:
                 new_req_avail_date_body['targetOfficeId'] = region_en
-                thread = executor.submit(self.http_req_avail_date, region_en, trans_var.req_date_link, new_req_avail_date_body.copy())
+                thread = executor.submit(self.http_req_avail_date, region_en, trans_var.req_date_link, copy.deepcopy(new_req_avail_date_body))
                 results.append(thread)
 
             for thread in concurrent.futures.as_completed(results):
@@ -326,7 +333,7 @@ class Candidate:
 
 
     def multi_req_avail_time(self):
-        new_req_avail_time_body = trans_var.req_avail_time_body.copy()
+        new_req_avail_time_body = copy.deepcopy(trans_var.req_avail_time_body)
         new_req_avail_time_body['groupSize'] = int(self.book_res['applicantNum'])
         new_req_avail_time_body['nature'] = self.book_res['nature']
         params = []
@@ -335,7 +342,7 @@ class Candidate:
                 ts, dt = daytime['ts'], daytime['dt']
                 new_req_avail_time_body['targetOfficeId'] = region
                 new_req_avail_time_body['targetDate'] = dt
-                params.append((trans_var.req_time_link, new_req_avail_time_body.copy(), daytime))
+                params.append((trans_var.req_time_link, copy.deepcopy(new_req_avail_time_body), daytime))
 
         if len(params) > 0:
             with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -345,6 +352,24 @@ class Candidate:
     def record_log(self):
         self.logger.info('\t'.join(self.log_record_list))
         self.log_record_list = []
+
+    def delete_log(self):
+        if os.path.exists(self.delete_log_path):
+            shutil.rmtree(self.delete_log_path)
+        shutil.move(self.log_path, self.delete_log_path)
+
+    def record_succ_conf(self, config_path):
+        with open(config_path, "r+") as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            tmp_book_conf = yaml.safe_load(open(config_path))
+            succ_config_path = self.succ_log_path + "/" + self.id_name + ".yaml"
+            with open(succ_config_path, 'w') as succ_yaml:
+                yaml.dump({self.id_name: tmp_book_conf[self.id_name]}, succ_yaml)
+            del tmp_book_conf[self.id_name]
+
+            f.seek(0)
+            f.truncate()
+            yaml.dump(tmp_book_conf, f)
 
     def __del__(self):
         try:

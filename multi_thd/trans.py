@@ -1,5 +1,6 @@
 import requests
 import fcntl
+import threading
 import time
 import shutil
 import json
@@ -7,7 +8,6 @@ from datetime import datetime as dt, timezone, timedelta, date
 import sys
 import logging
 from logging.handlers import TimedRotatingFileHandler
-import concurrent.futures
 import os
 import yaml
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -51,17 +51,16 @@ def parse_select_days(book_conf):
     return day_set - exclude_day_set
 
 def init_book_conf():
-    total_book_conf = yaml.safe_load(open(trans_var.config_path))
-    all_select_days = set()
-    for id_name in total_book_conf:
-        book_conf = total_book_conf[id_name]
-        book_conf['time_intervals'] = book_conf['time_intervals'].split(",") if len(book_conf['time_intervals']) > 0 else []
-        book_conf['office_ids'] = set(book_conf['office_ids'].split(",")) if len(book_conf['office_ids']) > 0 else set(trans_var.region_map.keys())
-        book_conf['weekdays'] = set(book_conf['weekdays'].split(",")) if len(book_conf['weekdays']) > 0 else set()
-        book_conf['select_days'] = parse_select_days(book_conf)
-        if id_name != trans_var.sentinal:
-            all_select_days |= book_conf['select_days']
-    return total_book_conf, all_select_days
+    with open(trans_var.config_path, "r") as f:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+        total_book_conf = yaml.safe_load(open(trans_var.config_path))
+        for id_name in total_book_conf:
+            book_conf = total_book_conf[id_name]
+            book_conf['time_intervals'] = book_conf['time_intervals'].split(",") if len(book_conf['time_intervals']) > 0 else []
+            book_conf['office_ids'] = set(book_conf['office_ids'].split(",")) if len(book_conf['office_ids']) > 0 else set(trans_var.region_map.keys())
+            book_conf['weekdays'] = set(book_conf['weekdays'].split(",")) if len(book_conf['weekdays']) > 0 else set()
+            book_conf['select_days'] = parse_select_days(book_conf)
+        return total_book_conf
 
 
 def init_main_logger():
@@ -116,68 +115,55 @@ def send_error_message(id_name):
         logger.error('send wxpusher message failed: %s', str(e), exc_info=True)
 
 def run_query_program(candidate):
-    while True:
+    while not candidate.stop_event.is_set():
         try_cnt = candidate.build_session()
         if try_cnt == 0 and len(candidate.book_res) == 0:
             send_error_message(candidate.id_name)
-            return "Error:" + candidate.id_name
+            time.sleep(600)
+            continue
 
-        while int(time.time()) - candidate.session_begin_time < 1100:
+        while int(time.time()) - candidate.session_begin_time < 1100 and candidate.succ_flag != 1:
             candidate.multi_request_avail_date()
             candidate.filter_date(candidate.book_conf['select_days'])
             candidate.multi_req_avail_time()
             candidate.filter_region_time_v2(candidate.region_day_time)
             if len(candidate.cand_region_time) > 0:
                 candidate.change_app_time()
-                if candidate.succ_flag == 1:
-                    send_succ_message(candidate.id_name, candidate.book_conf, candidate.book_result)
             candidate.record_log()
+            time.sleep(1)
 
         if candidate.succ_flag == 1:
-            break
-    # time_gap = 1800 if len(candidate.cand_region_time) > 0 else 3600
-    # try_cnt = candidate.build_session(time_gap)
-    # if try_cnt == 0 and len(candidate.book_res) == 0:
-    #     return "Error:" + candidate.id_name
+            candidate.stop_event.is_set()
 
-    return candidate.id_name
+    if candidate.succ_flag == 0:
+        candidate.delete_log()
+    else:
+        send_succ_message(candidate.id_name, candidate.book_conf, candidate.book_result)
+        shutil.move(candidate.log_path, candidate.succ_log_path)
+        candidate.record_succ_conf(trans_var.config_path)
 
 
-def clear_cand_info(config_path, succ_id_name, cand_map):
-    with open(config_path, "r+") as f:
-        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-        tmp_book_conf = yaml.safe_load(open(config_path))
-        for id_name in succ_id_name:
-            shutil.move(cand_map[id_name].log_path, cand_map[id_name].succ_log_path)
-            succ_config_path = cand_map[id_name].succ_log_path + "/" + id_name + ".yaml"
-            with open(succ_config_path, 'w') as succ_yaml:
-                yaml.dump({id_name: tmp_book_conf[id_name]}, succ_yaml)
-            tmp_book_conf.pop(id_name)
-            del cand_map[id_name]
-
-        f.seek(0)
-        f.truncate()
-        yaml.dump(tmp_book_conf, f)
-
-def update_cand_config(cand_map):
-    total_book_conf, all_select_days = init_book_conf()
-    for id_name in total_book_conf:
-        if id_name in cand_map:
-            cand_map[id_name].update_book_conf(id_name, total_book_conf)
-        else:
-            cand_map[id_name] = Candidate(id_name, total_book_conf)
-
+def update_cand_info(cand_map, total_book_conf):
     delete_id_name = []
     for id_name in cand_map:
-        if id_name not in total_book_conf:
-            if os.path.exists(cand_map[id_name].delete_log_path):
-                shutil.rmtree(cand_map[id_name].delete_log_path)
-            shutil.move(cand_map[id_name].log_path, cand_map[id_name].delete_log_path)
+        candidate, _ = cand_map[id_name]
+        if candidate.stop_event.is_set():
+            delete_id_name.append(id_name)
+        elif id_name not in total_book_conf or candidate.book_conf['version'] != total_book_conf[id_name]['version'] or total_book_conf[id_name]['suspend'] == 1:
+            candidate.stop_event.set()
             delete_id_name.append(id_name)
 
     for id_name in delete_id_name:
+        _, thd = cand_map[id_name]
+        thd.join()
         del cand_map[id_name]
-    return total_book_conf, all_select_days
+
+    for id_name in total_book_conf:
+        if id_name not in cand_map and total_book_conf[id_name]['suspend'] == 0:
+            c = Candidate(id_name, total_book_conf)
+            thd = threading.Thread(target=run_query_program, args=(c,))
+            cand_map[id_name] = (c, thd)
+            thd.start()
 
 
 if __name__ == "__main__":
@@ -190,43 +176,12 @@ if __name__ == "__main__":
         if current_modified_time > last_modified_time:
             logger.info("update conf because current_modified_time %u is larger than last_modified_time %u" % (current_modified_time, last_modified_time))
             last_modified_time = current_modified_time
-            total_book_conf, all_select_days = update_cand_config(cand_map)
-            if len(all_select_days) == 0 or len(total_book_conf) <= 1:
-                logger.error("Get book conf size is: " + str(len(total_book_conf)) + " all_select_day_size: " + str(len(all_select_days)))
+            total_book_conf = init_book_conf()
+            if len(total_book_conf) < 1:
+                logger.error("Get book conf size is: " + str(len(total_book_conf)))
                 sys.exit(2)
+            update_cand_info(cand_map, total_book_conf)
         else:
-            time.sleep(3)
-
-        try_cnt = cand_map[sentinal].build_session()
-        if try_cnt == 0 and len(cand_map[sentinal].book_res) == 0:
-            send_error_message('sentinal')
-            del cand_map[sentinal]
-            logger.error("build sentinal session failed!")
-            break
-        cand_map[sentinal].multi_request_avail_date()
-        cand_map[sentinal].filter_date(all_select_days)
-        cand_map[sentinal].multi_req_avail_time()
-        cand_map[sentinal].record_log()
-        succ_id_name = []
-
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = []
-            for id_name in cand_map:
-                if id_name == sentinal:
-                    continue
-                thread = executor.submit(run_query_program, cand_map[id_name], cand_map[sentinal].region_day_time)
-                results.append(thread)
-
-            for thread in concurrent.futures.as_completed(results):
-                id_name = thread.result()
-                if id_name not in cand_map:
-                    real_id_name = id_name.split(":")[1]
-                    del cand_map[real_id_name]
-                    send_error_message(real_id_name)
-                elif cand_map[id_name].succ_flag == 1:
-                    succ_id_name.append(id_name)
-
-        if len(succ_id_name) > 0:
-            clear_cand_info(trans_var.config_path, succ_id_name, cand_map)
+            time.sleep(10)
         count += 1
-        logger.info("run times: %u, conf_file_time: %u, succ_id_name: %s " % (count, current_modified_time, " ".join(succ_id_name)))
+        logger.info("run times: %u, conf_file_time: %u " % (count, current_modified_time))
