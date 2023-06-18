@@ -7,21 +7,16 @@ sentinal:
   exclude_days: '2023-06-23'
   time_intervals: ''
   weekdays: ''
+  version: 0
+  suspend: 0
 six34:
   day_intervals: '2023-06-19,2023-07-14'
-  id_code: '964447'
+  id_code: '234567'
   office_ids: ''
-  query_code: '1989'
+  query_code: '1993'
   select_days: ''
   exclude_days: ''
   time_intervals: ''
   weekdays: ''
-six35:
-  day_intervals: '2023-09-01,2023-09-30'
-  id_code: '234027'
-  office_ids: ''
-  query_code: '1998'
-  select_days: ''
-  exclude_days: ''
-  time_intervals: ''
-  weekdays: ''
+  version: 0
+  suspend: 1
