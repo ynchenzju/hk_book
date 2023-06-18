@@ -161,7 +161,7 @@ def update_cand_info(cand_map, total_book_conf):
     for id_name in total_book_conf:
         if id_name not in cand_map and total_book_conf[id_name]['suspend'] == 0:
             c = Candidate(id_name, total_book_conf)
-            thd = threading.Thread(target=run_query_program, args=(c,))
+            thd = threading.Thread(target=run_query_program, args=(c,), daemon=True)
             cand_map[id_name] = (c, thd)
             thd.start()
 
