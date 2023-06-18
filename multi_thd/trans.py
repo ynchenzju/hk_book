@@ -122,7 +122,7 @@ def run_query_program(candidate):
             time.sleep(600)
             continue
 
-        while int(time.time()) - candidate.session_begin_time < 1100 and candidate.succ_flag != 1:
+        while int(time.time()) - candidate.session_begin_time < 1100 and candidate.succ_flag != 1 and not candidate.stop_event.is_set():
             candidate.multi_request_avail_date()
             candidate.filter_date(candidate.book_conf['select_days'])
             candidate.multi_req_avail_time()
@@ -130,7 +130,7 @@ def run_query_program(candidate):
             if len(candidate.cand_region_time) > 0:
                 candidate.change_app_time()
             candidate.record_log()
-            time.sleep(1)
+            time.sleep(5)
 
         if candidate.succ_flag == 1:
             candidate.stop_event.is_set()
@@ -182,6 +182,14 @@ if __name__ == "__main__":
                 sys.exit(2)
             update_cand_info(cand_map, total_book_conf)
         else:
+            cur_time = get_cur_time()
+            if cur_time >= "0030" and cur_time <= "0730":
+                logger.info("enter mid night and stop rob")
+                for id_name in cand_map:
+                    c, thd = cand_map[id_name]
+                    c.stop_event.set()
+                    thd.join()
+                break
             time.sleep(10)
         count += 1
         logger.info("run times: %u, conf_file_time: %u " % (count, current_modified_time))
