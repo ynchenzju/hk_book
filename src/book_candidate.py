@@ -70,7 +70,7 @@ class Candidate:
         try_cnt = 5
         max_tc_cnt = 5
         self.book_res = {}
-        while try_cnt >= 0:
+        while try_cnt > 0:
             try:
                 self.sess = requests.Session()
                 if sys.platform == 'linux':
@@ -212,7 +212,7 @@ class Candidate:
 
     def change_app_time(self):
         self.change_app_req = copy.deepcopy(trans_var.change_app_req)
-        trans_var.change_app_req(self.change_app_req, self.book_res)
+        trans_var.fill_change_app_req(self.change_app_req, self.book_res)
         for region in self.cand_region_time:
             for avail_time in self.cand_region_time[region]:
                 if len(avail_time['time_zone']) == 0:
@@ -326,6 +326,7 @@ class Candidate:
     def record_log(self):
         self.logger.info('\t'.join(self.log_record_list))
         self.log_record_list = []
+
 
     def __del__(self):
         try:
