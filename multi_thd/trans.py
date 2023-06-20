@@ -133,7 +133,7 @@ def run_query_program(candidate):
             time.sleep(5)
 
         if candidate.succ_flag == 1:
-            candidate.stop_event.is_set()
+            candidate.stop_event.set()
 
     if candidate.succ_flag == 0:
         candidate.delete_log()
