@@ -7,6 +7,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(script_dir, "config.yaml")
 
 sentinal = 'sentinal'
+thd_num_per_cand = 4
 
 region_map = {"RHK": "湾仔", "RKO": "长沙湾", "RKT": "观塘", "FTO": "火炭", "TMO": "屯门", "YLO": "元朗"}
 
@@ -22,7 +23,7 @@ log_path_prefix = "./log/"
 succ_log_path_prefix = "./log/succ_"
 delete_log_path_prefix = "./log/delete_"
 
-normal_header = {
+normal_header_0 = {
         'Accept': 'application/json, text/plain, */*',
         'Accept-Encoding': 'gzip, deflate, br',
         'Accept-Language': 'zh-CN,zh;q=0.9',
@@ -40,6 +41,59 @@ normal_header = {
         'sec-ch-ua-platform': "macOs",
         'ticketId': ''
 }
+
+normal_header_1 = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'Connection': 'keep-alive',
+        'Cookie': 'EGIS_RID=.2; IMMD_RID=.1',
+        'Host': 'webapp.es2.immd.gov.hk',
+        'Referer': 'https://webapp.es2.immd.gov.hk/smartics2-client/ropbooking/zh-HK/eservices/ropChangeCancelAppointment/step1',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.1661.54',
+        'content-type': 'application/json',
+        'sec-ch-ua': '"Microsoft Edge";v="111", "Not(A:Brand";v="8", "Chromium";v="111"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': "macOs",
+        'ticketId': ''
+}
+
+normal_header_2 = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2',
+        'Connection': 'keep-alive',
+        'Cookie': 'EGIS_RID=.2; IMMD_RID=.1',
+        'Host': 'webapp.es2.immd.gov.hk',
+        'Referer': 'https://webapp.es2.immd.gov.hk/smartics2-client/ropbooking/zh-HK/eservices/ropChangeCancelAppointment/step1',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0',
+        'content-type': 'application/json',
+        'ticketId': ''
+}
+
+normal_header_3 = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'Connection': 'keep-alive',
+        'Cookie': 'EGIS_RID=.2; IMMD_RID=.1',
+        'Host': 'webapp.es2.immd.gov.hk',
+        'Referer': 'https://webapp.es2.immd.gov.hk/smartics2-client/ropbooking/zh-HK/eservices/ropChangeCancelAppointment/step1',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0',
+        'content-type': 'application/json',
+        'ticketId': ''
+}
+
+normal_header = [normal_header_0, normal_header_1, normal_header_2, normal_header_3]
 
 req_avail_date_body = {
     "channel": "WEB",
