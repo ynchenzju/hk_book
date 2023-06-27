@@ -26,9 +26,11 @@ class BookCandSet:
         self.succ_event = threading.Event()
         self.cand_thd_list = []
         self.init_logger(id_name)
-        self.cand_num = cand_num
         self.id_name = id_name
         self.book_conf = total_book_conf[id_name]
+        self.cand_num = cand_num
+        if 'thd_num' in self.book_conf:
+            self.cand_num = self.book_conf['thd_num']
 
     def init_cand_list(self):
         for i in range(self.cand_num):
