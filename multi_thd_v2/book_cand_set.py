@@ -8,7 +8,6 @@ import random
 import sys
 import logging
 from logging.handlers import TimedRotatingFileHandler
-import threading
 import os
 import yaml
 script_dir = os.path.dirname(os.path.abspath(__file__))
