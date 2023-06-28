@@ -190,7 +190,7 @@ class Candidate:
                     self.change_app_req['startDate'] = startDate
                     r = self.sess.post(trans_var.change_link, data=json.dumps(self.change_app_req), headers=self.normal_header)
                     self.book_result = "appDate:%s|appointmentTime:%s|officeId:%s" % (apptDate, appointmentTime, region)
-                    if r.status_code == 200 and not self.bc_set.succ_event.is_set():
+                    if r.status_code == 200 and not self.bc_set.succ_event.is_set() and not self.bc_set.stop_event.is_set():
                         self.bc_set.succ_event.set()
                         self.bc_set.stop_event.set()
                         self.log_record_list.append(self.book_result + "|200")
