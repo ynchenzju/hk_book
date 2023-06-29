@@ -14,9 +14,9 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 addition_path = os.path.join(script_dir, "trans_var.py")
 sys.path.append(addition_path)
 import trans_var
-addition_path = os.path.join(script_dir, "book_candidate.py")
+addition_path = os.path.join(script_dir, "book_cand_set.py")
 sys.path.append(addition_path)
-from book_candidate import Candidate
+from book_cand_set import BookCandSet
 
 def get_cur_time():
     sg_timezone = timezone(timedelta(hours=8), name='Asia/Singapore')
@@ -80,77 +80,18 @@ def init_main_logger():
 
 logger = init_main_logger()
 
-def send_succ_message(id_name, book_conf, book_result):
-    json_temp = {
-        "appToken": "AT_7FOnGTv0fw0BSrAGDkVeEl2hJEjcBwwB",
-        "summary": "身份证预约成功",
-        "contentType": 1,
-        "verifyPay": False,
-        'uids': ['UID_DTNWzSlwh04rIEPWOiCJ4wPqcz4P'],
-        'content': '\n'.join([id_name, book_conf['id_code'], book_conf['query_code'], book_result])
-    }
-    json_payload = json.dumps(json_temp)
-    post_url = 'https://wxpusher.zjiecode.com/api/send/message'
-    headers = {"Content-Type": "application/json"}
-    try:
-        response_wx = requests.post(post_url, data=json_payload, headers=headers)
-    except Exception as e:
-        logger.error('send wxpusher message failed: %s', str(e), exc_info=True)
-
-def send_error_message(id_name):
-    json_temp = {
-        "appToken": "AT_7FOnGTv0fw0BSrAGDkVeEl2hJEjcBwwB",
-        "summary": "以下用户异常",
-        "contentType": 1,
-        "verifyPay": False,
-        'uids': ['UID_DTNWzSlwh04rIEPWOiCJ4wPqcz4P'],
-        'content': id_name
-    }
-    json_payload = json.dumps(json_temp)
-    post_url = 'https://wxpusher.zjiecode.com/api/send/message'
-    headers = {"Content-Type": "application/json"}
-    try:
-        response_wx = requests.post(post_url, data=json_payload, headers=headers)
-    except Exception as e:
-        logger.error('send wxpusher message failed: %s', str(e), exc_info=True)
-
-def run_query_program(candidate):
-    while not candidate.stop_event.is_set():
-        try_cnt = candidate.build_session()
-        if try_cnt == 0 and len(candidate.book_res) == 0:
-            send_error_message(candidate.id_name)
-            time.sleep(600)
-            continue
-
-        while int(time.time()) - candidate.session_begin_time < 1100 and candidate.succ_flag != 1 and not candidate.stop_event.is_set():
-            candidate.multi_request_avail_date()
-            candidate.filter_date(candidate.book_conf['select_days'])
-            candidate.multi_req_avail_time()
-            candidate.filter_region_time_v2(candidate.region_day_time)
-            if len(candidate.cand_region_time) > 0:
-                candidate.change_app_time()
-            candidate.record_log()
-            time.sleep(5)
-
-        if candidate.succ_flag == 1:
-            candidate.stop_event.set()
-
-    if candidate.succ_flag == 0:
-        candidate.delete_log()
-    else:
-        send_succ_message(candidate.id_name, candidate.book_conf, candidate.book_result)
-        shutil.move(candidate.log_path, candidate.succ_log_path)
-        candidate.record_succ_conf(trans_var.config_path)
-
+def run_query_program(book_cand_set):
+    book_cand_set.init_cand_list()
+    book_cand_set.wait_for_thd()
 
 def update_cand_info(cand_map, total_book_conf):
     delete_id_name = []
     for id_name in cand_map:
-        candidate, _ = cand_map[id_name]
-        if candidate.stop_event.is_set():
+        book_cand_set, _ = cand_map[id_name]
+        if book_cand_set.stop_event.is_set():
             delete_id_name.append(id_name)
-        elif id_name not in total_book_conf or candidate.book_conf['version'] != total_book_conf[id_name]['version'] or total_book_conf[id_name]['suspend'] == 1:
-            candidate.stop_event.set()
+        elif id_name not in total_book_conf or book_cand_set.book_conf['version'] != total_book_conf[id_name]['version'] or total_book_conf[id_name]['suspend'] == 1:
+            book_cand_set.stop_event.set()
             delete_id_name.append(id_name)
 
     for id_name in delete_id_name:
@@ -160,11 +101,10 @@ def update_cand_info(cand_map, total_book_conf):
 
     for id_name in total_book_conf:
         if id_name not in cand_map and total_book_conf[id_name]['suspend'] == 0:
-            c = Candidate(id_name, total_book_conf)
-            thd = threading.Thread(target=run_query_program, args=(c,), daemon=True)
-            cand_map[id_name] = (c, thd)
+            b = BookCandSet(id_name, total_book_conf)
+            thd = threading.Thread(target=run_query_program, args=(b,), daemon=True)
+            cand_map[id_name] = (b, thd)
             thd.start()
-
 
 if __name__ == "__main__":
     sentinal = trans_var.sentinal

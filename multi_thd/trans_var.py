@@ -7,6 +7,11 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(script_dir, "config.yaml")
 
 sentinal = 'sentinal'
+thd_num_per_cand = 4
+
+POST_ERROR = -1
+POST_SUCC = 0
+POST_MAX_NUM = 1
 
 region_map = {"RHK": "湾仔", "RKO": "长沙湾", "RKT": "观塘", "FTO": "火炭", "TMO": "屯门", "YLO": "元朗"}
 
@@ -22,7 +27,7 @@ log_path_prefix = "./log/"
 succ_log_path_prefix = "./log/succ_"
 delete_log_path_prefix = "./log/delete_"
 
-normal_header = {
+normal_header_0 = {
         'Accept': 'application/json, text/plain, */*',
         'Accept-Encoding': 'gzip, deflate, br',
         'Accept-Language': 'zh-CN,zh;q=0.9',
@@ -40,6 +45,59 @@ normal_header = {
         'sec-ch-ua-platform': "macOs",
         'ticketId': ''
 }
+
+normal_header_1 = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'Connection': 'keep-alive',
+        'Cookie': 'EGIS_RID=.2; IMMD_RID=.1',
+        'Host': 'webapp.es2.immd.gov.hk',
+        'Referer': 'https://webapp.es2.immd.gov.hk/smartics2-client/ropbooking/zh-HK/eservices/ropChangeCancelAppointment/step1',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.1661.54',
+        'content-type': 'application/json',
+        'sec-ch-ua': '"Microsoft Edge";v="111", "Not(A:Brand";v="8", "Chromium";v="111"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': "macOs",
+        'ticketId': ''
+}
+
+normal_header_2 = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2',
+        'Connection': 'keep-alive',
+        'Cookie': 'EGIS_RID=.2; IMMD_RID=.1',
+        'Host': 'webapp.es2.immd.gov.hk',
+        'Referer': 'https://webapp.es2.immd.gov.hk/smartics2-client/ropbooking/zh-HK/eservices/ropChangeCancelAppointment/step1',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0',
+        'content-type': 'application/json',
+        'ticketId': ''
+}
+
+normal_header_3 = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'Connection': 'keep-alive',
+        'Cookie': 'EGIS_RID=.2; IMMD_RID=.1',
+        'Host': 'webapp.es2.immd.gov.hk',
+        'Referer': 'https://webapp.es2.immd.gov.hk/smartics2-client/ropbooking/zh-HK/eservices/ropChangeCancelAppointment/step1',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/114.0',
+        'content-type': 'application/json',
+        'ticketId': ''
+}
+
+normal_header = [normal_header_0, normal_header_1, normal_header_2, normal_header_3]
 
 req_avail_date_body = {
     "channel": "WEB",
@@ -124,6 +182,109 @@ app_instance = {
     "selected": True
 }
 
+natrure_group = ['FIRST_REGISTRATION', 'REPLACEMENT']
+nature = ['D', 'I']
+identity_type = ['2', '1']
+
+appl_avail_link = 'https://webapp.es2.immd.gov.hk/smartics2-services/ropbooking/rop/checkApplAvail/'
+appl_avail_body = {
+  "channel": "WEB",
+  "svcId": "579",
+  "appId": "579",
+  "lang": "TC",
+  "natureGroup": natrure_group[0],
+  "nature": nature[0],
+  "groupSize": 1,
+  "applicants": [
+    {
+      "identityType": "2",
+      "identityNum": [
+        "999997"
+      ],
+      "ARN": [
+        None,
+        None
+      ],
+      "dateOfBirth": "16",
+      "yearOfBirth": "1999",
+      "ageGroup": "A"
+    }
+  ],
+  "enquiryCode": "0721",
+  "captchaCode": "",
+  "captchaId": "",
+  "checkDuplicateHkicDTOList": [
+    {
+      "arn": "",
+      "identityType": "2",
+      "hkic": "999997",
+      "birthDateStr": "19990116",
+      "enquiryCode": "0721"
+    }
+  ]
+}
+
+
+req_make_appt_link = 'https://webapp.es2.immd.gov.hk/smartics2-services/ropbooking/rop/requestMakeAppt/'
+req_make_appt_body = {
+  "channel": "WEB",
+  "svcId": "579",
+  "appId": "579",
+  "lang": "TC",
+  "natureGroup": natrure_group[0],
+  "nature": nature[0],
+  "groupSize": 1,
+  "applicants": [
+    {
+      "identityType": "2",
+      "identityNum": [
+        "999999"
+      ],
+      "ARN": [
+        None,
+        None
+      ],
+      "dateOfBirth": "16",
+      "yearOfBirth": "1999",
+      "ageGroup": "A"
+    }
+  ],
+  "enquiryCode": "1999",
+  "officeId": "RHK",
+  "appointmentDate": "20230614",
+  "appointmentTime": "1015",
+  "appointmentEndTime": "1030",
+  "contactType": "N",
+  "contactInformation": "",
+  "apptDate": "2023-06-14",
+  "startDate": "1030",
+  "commlang": "zh-HK",
+  "applicantInfoDTOList": [
+    {
+      "arn": "",
+      "identityDocumentNum": "2",
+      "identity": "999999",
+      "identityCode": "",
+      "dateOfBirth": "19990116",
+      "ageGroup": "A"
+    }
+  ],
+  "acknowledgement": {
+    "lang": "ZH",
+    "platform": "MacIntel"
+  }
+}
+
+confirm_link = 'https://webapp.es2.immd.gov.hk/smartics2-services/ropbooking/rop/changeAppointmentConfirmationNew/'
+confirm_body = {
+  "channel": "WEB",
+  "svcId": "579",
+  "appId": "579",
+  "lang": "TC",
+  "trn": "5792306281005393",
+  "enquiryCode": "1999",
+  "apmidCode": "999999"
+}
 
 def fill_change_app_req(change_app_req, book_res):
     group_size = int(book_res['applicantNum'])
@@ -146,7 +307,7 @@ def fill_change_app_req(change_app_req, book_res):
         change_app_req['applicants'][-1]['groupMemId'] = applicant['groupMemId']
         change_app_req['applicants'][-1]['ageInd'] = applicant['ageInd']
         change_app_req['applicants'][-1]['prefilInd'] = applicant['prefilInd']
-        change_app_req['applicant'].append(change_app_req['applicants'][-1])
+    change_app_req['applicant'] = change_app_req['applicants']
 
 def get_week_day(t):
     date_format = "%Y-%m-%d"
