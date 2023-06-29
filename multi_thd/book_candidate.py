@@ -138,29 +138,25 @@ class Candidate:
             self.sess = requests.Session()
 
             if sys.platform == 'linux':
-                ip_check_succ = 0
                 self.sess.proxies = {'http': 'socks5://127.0.0.1:9050', 'https': 'socks5://127.0.0.1:9050'}
+                try_cnt_map['ip_check'] -= 1
                 try:
                     response = self.sess.get('https://checkip.amazonaws.com')
                     ip_address = response.text.strip()
                     self.logger.info(self.thd_hint + 'The session ip address is: ' + ip_address)
-                    ip_check_succ = 1
                 except:
-                    pass
-
-                try_cnt_map['ip_check'] -= 1
-                if ip_check_succ == 0:
                     self.logger.error(self.thd_hint + 'request checkip amazonaws failed, ip_check remains %u times' % try_cnt_map['ip_check'])
                     trans_var.renew_tor_ip()
                     continue
 
-            ticketid, ret_code = self.get_ticket_func()
-            if ret_code != trans_var.POST_SUCC:
-                if ret_code == trans_var.POST_ERROR:
+            ticketid, ticket_code = self.get_ticket_func()
+            if ticket_code != trans_var.POST_SUCC:
+                if ticket_code == trans_var.POST_ERROR:
                     try_cnt_map['get_ticket'] -= 1
                     trans_var.renew_tor_ip()
                 self.logger.error(self.thd_hint + 'request get ticket failed code: %d, get_ticket remains %u times' % (ret_code, try_cnt_map['get_ticket']))
                 continue
+            self.session_begin_time = int(time.time())
 
             self.normal_header['ticketId'] = ticketid
             tc_body = self.g.appl_avail_body if self.first_book else self.rebook_body
@@ -171,8 +167,7 @@ class Candidate:
                 self.logger.error(self.thd_hint + 'request tc captcha failed, tc_captcha remains %u times' % try_cnt_map['tc_captcha'])
                 trans_var.renew_tor_ip()
 
-        self.session_begin_time = int(time.time())
-
+        self.logger.info(self.thd_hint + 'ret_code: %d out build session loop, try_cnt: %s' % (ret_code, json.dumps(try_cnt_map)))
         return ret_code
 
 
