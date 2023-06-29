@@ -3,12 +3,13 @@ sentinal:
   id_code: '555555'
   office_ids: ''
   query_code: '0721'
-  select_days: '2023-06-23,2023-06-24'
+  select_days: '2023-06-23,2023-10-24'
   exclude_days: '2023-06-23'
   time_intervals: ''
   weekdays: ''
   version: 0
   suspend: 0
+  thd_num: 2
 six34:
   day_intervals: '2023-06-19,2023-07-14'
   id_code: '234567'
@@ -19,4 +20,5 @@ six34:
   time_intervals: ''
   weekdays: ''
   version: 0
-  suspend: 1
+  suspend: 0
+  thd_num: 3
