@@ -18,26 +18,55 @@ import trans_var
 
 class GenCand:
     def __init__(self, book_conf):
-        birth_year = str(book_conf['birth_year'])
-        birth_day = str(book_conf['birth_day'])
         enquiryCode = book_conf['query_code']
-        id_code = book_conf['id_code']
+        book_type = book_conf['book_type']
+        book_attr = trans_var.book_attr_map[book_type]
+        groupSize = len(book_conf['applicant'])
 
         appl_avail_body = copy.deepcopy(trans_var.appl_avail_body)
-        appl_avail_body['applicants'][0]['identityNum'][0] = id_code
-        appl_avail_body['applicants'][0]['dateOfBirth'] = birth_year
-        appl_avail_body['applicants'][0]['yearOfBirth'] = birth_day
         appl_avail_body['enquiryCode'] = enquiryCode
-        appl_avail_body['checkDuplicateHkicDTOList'][0]['hkic'] = id_code
-        appl_avail_body['checkDuplicateHkicDTOList'][0]['birthDateStr'] = birth_year + '01' + birth_day
-        appl_avail_body['checkDuplicateHkicDTOList'][0]['enquiryCode'] = enquiryCode
+        appl_avail_body['natureGroup'] = book_attr['natureGroup']
+        appl_avail_body['nature'] = book_attr['nature']
+        appl_avail_body['groupSize'] = groupSize
 
         appt_body = copy.deepcopy(trans_var.req_make_appt_body)
-        appt_body['applicants'] = appl_avail_body['applicants']
         appt_body['enquiryCode'] = enquiryCode
-        appt_body['applicantInfoDTOList'][0]['identity'] = id_code
-        appt_body['applicantInfoDTOList'][0]['dateOfBirth'] = birth_year + '01' + birth_day
+        appt_body['natureGroup'] = book_attr['natureGroup']
+        appt_body['nature'] = book_attr['nature']
+        appt_body['groupSize'] = groupSize
 
+        for applicant_info in book_conf['applicant']:
+            id_code, birth_date = applicant_info.split(",")
+            id_type = '1' if id_code[0] >= 'A' and id_code[0] <= 'Z' else '2'
+            id_postfix = id_code.split("(")[1].split(")")[0] if id_type == '1' else ''
+            id_code = id_code.split("(")[0]
+
+            birth_year = birth_date[:4]
+            birth_day = birth_date[6:]
+            appl_avail_body['applicants'].append(copy.deepcopy(trans_var.appl_struct))
+            appl_avail_body['applicants'][-1]['identityType'] = id_type
+            appl_avail_body['applicants'][-1]['identityNum'].append(id_code)
+            if id_postfix != '':
+                appl_avail_body['applicants'][-1]['identityNum'].append(id_postfix)
+
+            appl_avail_body['applicants'][-1]['dateOfBirth'] = birth_year
+            appl_avail_body['applicants'][-1]['yearOfBirth'] = birth_day
+            appl_avail_body['applicants'][-1]['ageGroup'] = book_attr['ageGroup']
+
+            appl_avail_body['checkDuplicateHkicDTOList'].append(copy.deepcopy(trans_var.checkDuplicateHkicDTO))
+            appl_avail_body['checkDuplicateHkicDTOList'][-1]['hkic'] = id_code
+            appl_avail_body['checkDuplicateHkicDTOList'][-1]['birthDateStr'] = birth_year + '01' + birth_day
+            appl_avail_body['checkDuplicateHkicDTOList'][-1]['enquiryCode'] = enquiryCode
+            appl_avail_body['checkDuplicateHkicDTOList'][-1]['identityType'] = id_type
+
+            appt_body['applicantInfoDTOList'].append(copy.deepcopy(trans_var.applicantInfoDTO))
+            appt_body['applicantInfoDTOList'][-1]['identityDocumentNum'] = id_type
+            appt_body['applicantInfoDTOList'][-1]['identity'] = id_code
+            appt_body['applicantInfoDTOList'][-1]['identityCode'] = id_postfix
+            appt_body['applicantInfoDTOList'][-1]['dateOfBirth'] = birth_year + '01' + birth_day
+            appt_body['applicantInfoDTOList'][-1]['ageGroup'] = book_attr['ageGroup']
+
+        appt_body['applicants'] = appl_avail_body['applicants']
         self.appl_avail_body = appl_avail_body
         self.appt_body = appt_body
 
@@ -47,14 +76,6 @@ class Candidate:
         self.book_conf = bc_set.book_conf
         self.id_name = id_name
         self.first_book = self.book_conf['first_book']
-        if self.first_book:
-            self.g = GenCand(self.book_conf)
-        else:
-            self.rebook_body = copy.deepcopy(trans_var.rebook_body)
-            self.rebook_body['identityCode'] = self.book_conf['id_code']
-            self.rebook_body['identityType'] = '2' if self.book_conf['id_code'][0] >= '0' and self.book_conf['id_code'][0] <= '9' else '1'
-            self.rebook_body['enquiryCode'] = self.book_conf['query_code']
-            self.change_app_req = copy.deepcopy(trans_var.change_app_req)
         self.normal_header = copy.deepcopy(trans_var.normal_header[thd_index % len(trans_var.normal_header)])
         self.session_begin_time = 0
         self.sess = None
@@ -67,6 +88,20 @@ class Candidate:
         self.logger = bc_set.logger
         self.thd_hint = "Thread " + str(thd_index) + " : "
         self.thd_index = thd_index
+        book_type = self.book_conf['book_type']
+        self.book_attr = trans_var.book_attr_map[book_type]
+
+        if self.first_book:
+            self.g = GenCand(self.book_conf)
+            appl_avail_body_str = json.dumps(self.g.appl_avail_body, default=lambda x: None if x is None else x)
+            appt_body_str = json.dumps(self.g.appt_body, default=lambda x: None if x is None else x)
+            self.logger.info(self.thd_hint + 'create new cands: %s ||  %s' % (appl_avail_body_str, appt_body_str))
+        else:
+            self.rebook_body = copy.deepcopy(trans_var.rebook_body)
+            self.rebook_body['identityCode'] = self.book_conf['id_code']
+            self.rebook_body['identityType'] = '2' if self.book_conf['id_code'][0] >= '0' and self.book_conf['id_code'][0] <= '9' else '1'
+            self.rebook_body['enquiryCode'] = self.book_conf['query_code']
+            self.change_app_req = copy.deepcopy(trans_var.change_app_req)
 
     def get_ticket_func(self):
         ticketid = ''
@@ -213,7 +248,7 @@ class Candidate:
                     self.g.appt_body['appointmentEndTime'] = time_zone[1]
                     self.g.appt_body['startDate'] = time_zone[1]
                     r = self.sess.post(trans_var.req_make_appt_link,
-                                       data=json.dumps(g.appt_body, default=lambda x: None if x is None else x),
+                                       data=json.dumps(self.g.appt_body, default=lambda x: None if x is None else x),
                                        headers=self.normal_header)
                     self.book_result = "appDate:%s|appointmentTime:%s|officeId:%s" % (avail_time['dt'], time_zone[0], region)
                     if r.status_code == 200 and not self.bc_set.succ_event.is_set() and not self.bc_set.stop_event.is_set():
@@ -290,10 +325,10 @@ class Candidate:
 
     def fill_req_avail_date_body(self, new_req_avail_date_body):
         if self.first_book:
-            new_req_avail_date_body['groupSize'] = 1
-            new_req_avail_date_body['nature'] = 'D'
+            new_req_avail_date_body['groupSize'] = str(len(self.book_conf['applicant']))
+            new_req_avail_date_body['nature'] = self.book_attr['nature']
         else:
-            new_req_avail_date_body['groupSize'] = int(self.book_res['applicantNum'])
+            new_req_avail_date_body['groupSize'] = str(self.book_res['applicantNum'])
             new_req_avail_date_body['nature'] = self.book_res['nature']
 
     def multi_request_avail_date(self):
@@ -342,10 +377,10 @@ class Candidate:
 
     def fill_req_avail_time_body(self, new_req_avail_time_body):
         if self.first_book:
-            new_req_avail_time_body['groupSize'] = 1
-            new_req_avail_time_body['nature'] = 'D'
+            new_req_avail_time_body['groupSize'] = str(len(self.book_conf['applicant']))
+            new_req_avail_time_body['nature'] = self.book_attr['nature']
         else:
-            new_req_avail_time_body['groupSize'] = int(self.book_res['applicantNum'])
+            new_req_avail_time_body['groupSize'] = str(self.book_res['applicantNum'])
             new_req_avail_time_body['nature'] = self.book_res['nature']
 
     def multi_req_avail_time(self):

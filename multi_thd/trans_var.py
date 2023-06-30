@@ -99,6 +99,8 @@ normal_header_3 = {
 
 normal_header = [normal_header_0, normal_header_1, normal_header_2, normal_header_3]
 
+###===========================================
+
 req_avail_date_body = {
     "channel": "WEB",
     "svcId": "579",
@@ -182,9 +184,40 @@ app_instance = {
     "selected": True
 }
 
-natrure_group = ['FIRST_REGISTRATION', 'REPLACEMENT']
-nature = ['D', 'I']
-identity_type = ['2', '1']
+####===========================================
+
+book_attr_map = {
+    'other': {'natrure_group' : 'FIRST_REGISTRATION', 'nature': 'D', 'ageGroup': 'A'},
+    'evisa': {'natrure_group': 'FIRST_REGISTRATION', 'nature': 'W', 'ageGroup': 'A'},
+}
+
+appl_struct = {
+    "identityType": "2",
+    "identityNum": [],
+    "ARN": [None, None],
+    "dateOfBirth": "16",
+    "yearOfBirth": "1999",
+    "ageGroup": "A"
+}
+checkDuplicateHkicDTO = {
+    "arn": "",
+    "identityType": "2",
+    "hkic": "999997",
+    "birthDateStr": "19990116",
+    "enquiryCode": "0721"
+}
+applicantInfoDTO = {
+    "arn": "",
+    "identityDocumentNum": "2",
+    "identity": "999999",
+    "identityCode": "",
+    "dateOfBirth": "19990116",
+    "ageGroup": "A"
+}
+
+# natrure_group = ['FIRST_REGISTRATION', 'REPLACEMENT']
+# nature = ['D', 'I']
+# identity_type = ['2', '1']
 
 appl_avail_link = 'https://webapp.es2.immd.gov.hk/smartics2-services/ropbooking/rop/checkApplAvail/'
 appl_avail_body = {
@@ -192,36 +225,14 @@ appl_avail_body = {
   "svcId": "579",
   "appId": "579",
   "lang": "TC",
-  "natureGroup": natrure_group[0],
-  "nature": nature[0],
-  "groupSize": 1,
-  "applicants": [
-    {
-      "identityType": "2",
-      "identityNum": [
-        "999997"
-      ],
-      "ARN": [
-        None,
-        None
-      ],
-      "dateOfBirth": "16",
-      "yearOfBirth": "1999",
-      "ageGroup": "A"
-    }
-  ],
-  "enquiryCode": "0721",
+  "natureGroup": '',
+  "nature": '',
+  "groupSize": '',
+  "applicants": [],
+  "enquiryCode": "",
   "captchaCode": "",
   "captchaId": "",
-  "checkDuplicateHkicDTOList": [
-    {
-      "arn": "",
-      "identityType": "2",
-      "hkic": "999997",
-      "birthDateStr": "19990116",
-      "enquiryCode": "0721"
-    }
-  ]
+  "checkDuplicateHkicDTOList": []
 }
 
 
@@ -231,24 +242,10 @@ req_make_appt_body = {
   "svcId": "579",
   "appId": "579",
   "lang": "TC",
-  "natureGroup": natrure_group[0],
-  "nature": nature[0],
-  "groupSize": 1,
-  "applicants": [
-    {
-      "identityType": "2",
-      "identityNum": [
-        "999999"
-      ],
-      "ARN": [
-        None,
-        None
-      ],
-      "dateOfBirth": "16",
-      "yearOfBirth": "1999",
-      "ageGroup": "A"
-    }
-  ],
+  "natureGroup": '',
+  "nature": '',
+  "groupSize": '',
+  "applicants": [],
   "enquiryCode": "1999",
   "officeId": "RHK",
   "appointmentDate": "20230614",
@@ -259,31 +256,11 @@ req_make_appt_body = {
   "apptDate": "2023-06-14",
   "startDate": "1030",
   "commlang": "zh-HK",
-  "applicantInfoDTOList": [
-    {
-      "arn": "",
-      "identityDocumentNum": "2",
-      "identity": "999999",
-      "identityCode": "",
-      "dateOfBirth": "19990116",
-      "ageGroup": "A"
-    }
-  ],
+  "applicantInfoDTOList": [],
   "acknowledgement": {
     "lang": "ZH",
     "platform": "MacIntel"
   }
-}
-
-confirm_link = 'https://webapp.es2.immd.gov.hk/smartics2-services/ropbooking/rop/changeAppointmentConfirmationNew/'
-confirm_body = {
-  "channel": "WEB",
-  "svcId": "579",
-  "appId": "579",
-  "lang": "TC",
-  "trn": "5792306281005393",
-  "enquiryCode": "1999",
-  "apmidCode": "999999"
 }
 
 def fill_change_app_req(change_app_req, book_res):
