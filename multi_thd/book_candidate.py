@@ -37,7 +37,7 @@ class GenCand:
 
         for applicant_info in book_conf['applicant']:
             id_code, birth_date = applicant_info.split(",")
-            id_type = '1' if id_code[0] >= 'A' and id_code[0] <= 'Z' else '2'
+            id_type = '2' if id_code[0] >= '0' and id_code[0] <= '9' else '1'
             id_postfix = id_code.split("(")[1].split(")")[0] if id_type == '1' else ''
             id_code = id_code.split("(")[0]
 
@@ -98,8 +98,9 @@ class Candidate:
             self.logger.info(self.thd_hint + 'create new cands: %s ||  %s' % (appl_avail_body_str, appt_body_str))
         else:
             self.rebook_body = copy.deepcopy(trans_var.rebook_body)
-            self.rebook_body['identityCode'] = self.book_conf['id_code']
-            self.rebook_body['identityType'] = '2' if self.book_conf['id_code'][0] >= '0' and self.book_conf['id_code'][0] <= '9' else '1'
+            id_code = self.book_conf['applicant'][0].split(",")[0].split("(")[0]
+            self.rebook_body['identityCode'] = id_code
+            self.rebook_body['identityType'] = '2' if id_code[0] >= '0' and id_code[0] <= '9' else '1'
             self.rebook_body['enquiryCode'] = self.book_conf['query_code']
             self.change_app_req = copy.deepcopy(trans_var.change_app_req)
 
