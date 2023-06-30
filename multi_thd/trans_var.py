@@ -187,8 +187,8 @@ app_instance = {
 ####===========================================
 
 book_attr_map = {
-    'other': {'natrure_group' : 'FIRST_REGISTRATION', 'nature': 'D', 'ageGroup': 'A'},
-    'evisa': {'natrure_group': 'FIRST_REGISTRATION', 'nature': 'W', 'ageGroup': 'A'},
+    'other': {'natureGroup' : 'FIRST_REGISTRATION', 'nature': 'D', 'ageGroup': 'A'},
+    'evisa': {'natureGroup': 'FIRST_REGISTRATION', 'nature': 'W', 'ageGroup': 'A'},
 }
 
 appl_struct = {
