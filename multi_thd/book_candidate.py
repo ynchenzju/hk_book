@@ -88,10 +88,10 @@ class Candidate:
         self.logger = bc_set.logger
         self.thd_hint = "Thread " + str(thd_index) + " : "
         self.thd_index = thd_index
-        book_type = self.book_conf['book_type']
-        self.book_attr = trans_var.book_attr_map[book_type]
 
         if self.first_book:
+            book_type = self.book_conf['book_type']
+            self.book_attr = trans_var.book_attr_map[book_type]
             self.g = GenCand(self.book_conf)
             appl_avail_body_str = json.dumps(self.g.appl_avail_body, default=lambda x: None if x is None else x)
             appt_body_str = json.dumps(self.g.appt_body, default=lambda x: None if x is None else x)
