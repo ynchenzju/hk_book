@@ -1,9 +1,7 @@
-import requests
 import fcntl
 import threading
 import time
 import shutil
-import json
 from datetime import datetime as dt, timezone, timedelta, date
 import sys
 import logging
@@ -60,6 +58,7 @@ def init_book_conf():
             book_conf['office_ids'] = set(book_conf['office_ids'].split(",")) if len(book_conf['office_ids']) > 0 else set(trans_var.region_map.keys())
             book_conf['weekdays'] = set(book_conf['weekdays'].split(",")) if len(book_conf['weekdays']) > 0 else set()
             book_conf['select_days'] = parse_select_days(book_conf)
+            book_conf['applicant'] = book_conf['applicant'].split(";") if len(book_conf['applicant']) > 0 else []
         return total_book_conf
 
 
