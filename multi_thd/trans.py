@@ -117,8 +117,8 @@ if __name__ == "__main__":
             last_modified_time = current_modified_time
             total_book_conf = init_book_conf()
             if len(total_book_conf) < 1:
-                logger.error("Get book conf size is: " + str(len(total_book_conf)))
-                sys.exit(2)
+                logger.info("Get book conf size is: " + str(len(total_book_conf)))
+                sys.exit(0)
             update_cand_info(cand_map, total_book_conf)
         else:
             cur_time = get_cur_time()

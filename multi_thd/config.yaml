@@ -1,28 +1,14 @@
-#sentinal:
-#  day_intervals: ''
-#  office_ids: ''
-#  query_code: '0721'
-#  select_days: '2023-06-23,2023-10-24'
-#  exclude_days: '2023-06-23'
-#  time_intervals: ''
-#  weekdays: ''
-#  version: 0
-#  suspend: 0
-#  thd_num: 2
-#  first_book: 0
-#  book_type: 'other'
-#  applicant: '555555,00000000'
 sentinal2:
-  day_intervals: '2023-06-23,2023-10-31'
+  applicant: 155554,19930110
+  book_type: other
+  day_intervals: 2023-06-23,2023-10-31
+  exclude_days: '2023-06-23'
+  first_book: 1
   office_ids: ''
   query_code: '1993'
   select_days: ''
-  exclude_days: '2023-06-23'
-  time_intervals: ''
-  weekdays: ''
-  version: 0
   suspend: 0
   thd_num: 1
-  first_book: 1
-  book_type: 'other'
-  applicant: '155554,19930110;155555,19930101'
+  time_intervals: ''
+  version: 0
+  weekdays: ''
