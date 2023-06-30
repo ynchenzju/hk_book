@@ -79,7 +79,7 @@ class BookCandSet:
 
             while int(time.time()) - candidate.session_begin_time < 1100 and candidate.succ_flag != 1 and not self.stop_event.is_set():
                 candidate.multi_request_avail_date()
-                candidate.filter_date(self.book_conf['select_days'])
+                candidate.filter_date()
                 candidate.multi_req_avail_time()
                 candidate.filter_region_time(candidate.region_day_time)
                 if len(candidate.cand_region_time) > 0:
@@ -114,7 +114,7 @@ class BookCandSet:
             "contentType": 1,
             "verifyPay": False,
             'uids': ['UID_DTNWzSlwh04rIEPWOiCJ4wPqcz4P'],
-            'content': '\n'.join([id_name, book_conf['id_code'], book_conf['query_code'], book_result])
+            'content': '\n'.join([id_name, book_conf['applicant'][0], book_conf['query_code'], book_result])
         }
         json_payload = json.dumps(json_temp)
         post_url = 'https://wxpusher.zjiecode.com/api/send/message'

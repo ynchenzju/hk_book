@@ -189,7 +189,8 @@ class Candidate:
             if ticket_code != trans_var.POST_SUCC:
                 if ticket_code == trans_var.POST_ERROR:
                     try_cnt_map['get_ticket'] -= 1
-                    trans_var.renew_tor_ip()
+                    if sys.platform == 'linux':
+                        trans_var.renew_tor_ip()
                 self.logger.error(self.thd_hint + 'request get ticket failed code: %d, get_ticket remains %u times' % (ret_code, try_cnt_map['get_ticket']))
                 continue
             self.session_begin_time = int(time.time())
@@ -201,7 +202,8 @@ class Candidate:
             try_cnt_map['tc_captcha'] -= 1
             if ret_code == trans_var.POST_ERROR:
                 self.logger.error(self.thd_hint + 'request tc captcha failed, tc_captcha remains %u times' % try_cnt_map['tc_captcha'])
-                trans_var.renew_tor_ip()
+                if sys.platform == 'linux':
+                    trans_var.renew_tor_ip()
 
         self.logger.info(self.thd_hint + 'ret_code: %d out build session loop, try_cnt: %s' % (ret_code, json.dumps(try_cnt_map)))
         return ret_code
@@ -351,11 +353,11 @@ class Candidate:
                         self.region_day_time[key] = result[key]
 
 
-    def filter_date(self, all_select_days):
+    def filter_date(self):
         new_region_time = {}
         for region in self.region_day_time:
             for daytime in self.region_day_time[region]:
-                if daytime['dt'] in all_select_days:
+                if daytime['dt'] in self.book_conf['select_days']:
                     if region not in new_region_time:
                         new_region_time[region] = []
                     new_region_time[region].append(daytime)
