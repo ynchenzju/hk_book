@@ -22,6 +22,9 @@ class GenCand:
         book_type = book_conf['book_type']
         book_attr = trans_var.book_attr_map[book_type]
         groupSize = len(book_conf['applicant'])
+        evisa_list = []
+        if book_type == 'evisa':
+            self.parse_evisa(book_conf['evisa'], evisa_list)
 
         appl_avail_body = copy.deepcopy(trans_var.appl_avail_body)
         appl_avail_body['enquiryCode'] = enquiryCode
@@ -35,7 +38,7 @@ class GenCand:
         appt_body['nature'] = book_attr['nature']
         appt_body['groupSize'] = groupSize
 
-        for applicant_info in book_conf['applicant']:
+        for idx, applicant_info in enumerate(book_conf['applicant']):
             id_code, birth_date = applicant_info.split(",")
             id_type = '2' if id_code[0] >= '0' and id_code[0] <= '9' else '1'
             id_postfix = id_code.split("(")[1].split(")")[0] if id_type == '1' else ''
@@ -66,9 +69,21 @@ class GenCand:
             appt_body['applicantInfoDTOList'][-1]['dateOfBirth'] = birth_year + '01' + birth_day
             appt_body['applicantInfoDTOList'][-1]['ageGroup'] = book_attr['ageGroup']
 
+            if book_type == 'evisa':
+                appl_avail_body['applicants'][-1]['ARN'] = evisa_list[idx]
+                appl_avail_body['checkDuplicateHkicDTOList'][-1]['arn'] = evisa_list[idx][0]
+                appt_body['applicantInfoDTOList'][-1]['arn'] = evisa_list[idx][0]
+
         appt_body['applicants'] = appl_avail_body['applicants']
         self.appl_avail_body = appl_avail_body
         self.appt_body = appt_body
+
+    def parse_evisa(self, evisa_str, evisa_list):
+        fields = evisa_str.split(";")
+        for field in fields:
+            evisa = field.split("(")[0]
+            evisa_postfix = field.split("(")[1].split(")")[0]
+            evisa_list.append([evisa, evisa_postfix])
 
 
 class Candidate:
