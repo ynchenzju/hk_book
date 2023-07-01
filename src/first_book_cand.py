@@ -298,6 +298,7 @@ class FirstCand:
         try:
             r = self.sess.post(first_book_var.req_make_appt_link, data=json.dumps(g.appt_body, default=lambda x: None if x is None else x), headers=self.normal_header)
             print(r.text)
+            # {"trn":"5792306281005703","transactionDateTime":1687955583541,"errorCode":"","oriTrn":null}
         except:
             pass
 
@@ -407,3 +408,6 @@ if __name__ == "__main__":
             break
         if flag:
             break
+
+    # 241930 7559
+    # 731906 3930

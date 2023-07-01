@@ -9,6 +9,7 @@ sentinal:
   weekdays: ''
   version: 0
   suspend: 0
+  thd_num: 2
 six34:
   day_intervals: '2023-06-19,2023-07-14'
   id_code: '234567'
@@ -19,4 +20,5 @@ six34:
   time_intervals: ''
   weekdays: ''
   version: 0
-  suspend: 1
+  suspend: 0
+  thd_num: 3
