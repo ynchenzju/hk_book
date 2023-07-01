@@ -1,12 +1,12 @@
-sentinal2:
-  applicant: 155554,19930110
-  book_type: other
+sentinal3:
+  applicant: 933978,19840105
+  book_type: evisa
   evisa: TQEN-1114750-23(A)
   day_intervals: 2023-06-23,2023-10-31
   exclude_days: '2023-06-23'
   first_book: 1
   office_ids: ''
-  query_code: '1993'
+  query_code: '1984'
   select_days: ''
   suspend: 0
   thd_num: 1
