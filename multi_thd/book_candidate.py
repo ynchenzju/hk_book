@@ -18,7 +18,7 @@ import trans_var
 
 class GenCand:
     def __init__(self, book_conf):
-        enquiryCode = book_conf['query_code']
+        enquiryCode = book_conf['applicant'][0].split(",")[1][:4]
         book_type = book_conf['book_type']
         book_attr = trans_var.book_attr_map[book_type]
         groupSize = len(book_conf['applicant'])
