@@ -192,7 +192,8 @@ book_attr_map = {
     'other': {'natureGroup' : 'FIRST_REGISTRATION', 'nature': 'D', 'ageGroup': 'A'},
     'evisa': {'natureGroup': 'FIRST_REGISTRATION', 'nature': 'W', 'ageGroup': 'A'},
     'adult_hkid': {'natureGroup': 'SIDCC', 'nature': 'S', 'ageGroup': 'A'}, # 成人身份证旧换新
-    'child_hkid': {'natureGroup': 'REPLACEMENT', 'nature': 'G', 'ageGroup': 'J'} # 未满11岁1个儿童一般时间段换证
+    'child_hkid': {'natureGroup': 'REPLACEMENT', 'nature': 'G', 'ageGroup': 'J'}, # 未满11岁1个儿童一般时间段换证
+    'child_first': {'natureGroup': 'FIRST_REGISTRATION', 'nature': 'B', 'ageGroup': 'J'}  # 满11岁1个儿童首次申请
 }
 
 appl_struct = {
