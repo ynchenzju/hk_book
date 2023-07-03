@@ -1,7 +1,7 @@
 
 natrure_group = ['FIRST_REGISTRATION', 'REPLACEMENT']
 nature = ['D', 'I']
-identity_type = ['2', '1']
+identity_type = [2, 1]
 
 appl_avail_link = 'https://webapp.es2.immd.gov.hk/smartics2-services/ropbooking/rop/checkApplAvail/'
 appl_avail_body = {
