@@ -101,8 +101,7 @@ class Candidate:
         self.region_day_time = {}
         self.bc_set = bc_set
         self.logger = bc_set.logger
-        self.thd_hint = "Thread " + str(thd_index) + " : "
-        self.thd_index = thd_index
+        self.thd_hint = "Thread " + str(thd_index) + " fb " + str(self.first_book) + " : "
 
         if self.first_book:
             book_type = self.book_conf['book_type']
