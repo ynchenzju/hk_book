@@ -40,8 +40,8 @@ class GenCand:
 
         for idx, applicant_info in enumerate(book_conf['applicant']):
             id_code, birth_date = applicant_info.split(",")
-            id_type = '2' if id_code[0] >= '0' and id_code[0] <= '9' else '1'
-            id_postfix = id_code.split("(")[1].split(")")[0] if id_type == '1' else ''
+            id_type = 2 if id_code[0] >= '0' and id_code[0] <= '9' else 1
+            id_postfix = id_code.split("(")[1].split(")")[0] if id_type == 1 else ''
             id_code = id_code.split("(")[0]
 
             birth_year = birth_date[:4]
@@ -343,10 +343,10 @@ class Candidate:
 
     def fill_req_avail_date_body(self, new_req_avail_date_body):
         if self.first_book:
-            new_req_avail_date_body['groupSize'] = str(len(self.book_conf['applicant']))
+            new_req_avail_date_body['groupSize'] = len(self.book_conf['applicant'])
             new_req_avail_date_body['nature'] = self.book_attr['nature']
         else:
-            new_req_avail_date_body['groupSize'] = str(self.book_res['applicantNum'])
+            new_req_avail_date_body['groupSize'] = self.book_res['applicantNum']
             new_req_avail_date_body['nature'] = self.book_res['nature']
 
     def multi_request_avail_date(self):
@@ -395,10 +395,10 @@ class Candidate:
 
     def fill_req_avail_time_body(self, new_req_avail_time_body):
         if self.first_book:
-            new_req_avail_time_body['groupSize'] = str(len(self.book_conf['applicant']))
+            new_req_avail_time_body['groupSize'] = len(self.book_conf['applicant'])
             new_req_avail_time_body['nature'] = self.book_attr['nature']
         else:
-            new_req_avail_time_body['groupSize'] = str(self.book_res['applicantNum'])
+            new_req_avail_time_body['groupSize'] = self.book_res['applicantNum']
             new_req_avail_time_body['nature'] = self.book_res['nature']
 
     def multi_req_avail_time(self):
