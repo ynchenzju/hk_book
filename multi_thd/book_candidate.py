@@ -133,7 +133,7 @@ class Candidate:
                     ret_code = trans_var.POST_SUCC
                     break
                 tc_times -= 1
-                self.logger.warning(self.thd_hint + 'tc_times: %u get ticekt system is busy : %s' % tc_times)
+                self.logger.warning(self.thd_hint + 'tc_times: %u get ticekt system is busy' % tc_times)
                 time.sleep(3)
         except Exception as e:
             self.logger.error(self.thd_hint + 'An error occurred in get_ticket: %s', str(e), exc_info=True)
