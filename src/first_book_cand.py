@@ -1,10 +1,11 @@
 import ddddocr
 import copy
+import redis
 import random
 import json
 import requests
 from urllib import parse
-import datetime
+from datetime import datetime as dt, timezone, timedelta, date
 from urllib.parse import urlparse
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -19,7 +20,6 @@ trans_var_path = os.path.join(script_dir, "trans_var.py")
 sys.path.append(trans_var_path)
 import trans_var
 import first_book_var
-import copy
 
 class GenCand:
     def __init__(self, region = 'RHK', dt = '2023-01-01', time_zone = ("0000", "0000")):
@@ -54,10 +54,57 @@ class GenCand:
         self.appt_body = appt_body
 
 class FirstCand:
+    redis_pool = redis.ConnectionPool(host='168.138.196.53', port=6379, db=1, password='chenyunan721', max_connections=128)
+
     def __init__(self, region = 'RHK', dt = '2023-01-01', time_zone = ("0000", "0000")):
         self.normal_header = copy.deepcopy(trans_var.normal_header)
         self.init_logger('default')
         self.g = GenCand(region, dt, time_zone)
+
+    def parse_exclude_days(self, book_conf):
+        office_ids = book_conf['office_ids'].split(",") if len(book_conf['office_ids']) > 0 else list(trans_var.region_map.keys())
+        weekdays = set(book_conf['weekdays'].split(","))
+        day_set = set()
+        if len(book_conf['day_intervals']) > 0:
+            day_pairs = book_conf['day_intervals'].split(";")
+            for day_pair in day_pairs:
+                day1, day2 = day_pair.split(",")
+                # 2023-01-01
+                start_date = dt(int(day1[:4]), int(day1[5:7]), int(day1[8:]))
+                end_date = dt(int(day2[:4]), int(day2[5:7]), int(day2[8:]))
+                while start_date <= end_date:
+                    date_str = start_date.strftime("%Y-%m-%d")
+                    start_date += timedelta(days=1)
+                    if len(book_conf['weekdays']) > 0:
+                        weekday, _ = trans_var.get_week_day(date_str)
+                        if weekday not in weekdays:
+                            continue
+                    day_set.add(date_str)
+        if len(book_conf['select_days']) > 0:
+            day_set |= set(book_conf['select_days'].split(","))
+        if len(book_conf['exclude_days']) > 0:
+            day_set -= set(book_conf['exclude_days'].split(","))
+
+        exclude_days = set()
+        for region in office_ids:
+            for day in day_set:
+                exclude_days.add(region + "|" + day)
+        return exclude_days
+
+
+    def get_invalid_region_day(self):
+        all_exclude_days = set()
+        try:
+            with redis.Redis(connection_pool=FirstCand.redis_pool) as r:
+                book_conf = {}
+                if r.exists('book_conf'):
+                    book_conf = json.loads(r.get('book_conf'))
+                print(book_conf)
+                for userid in book_conf:
+                    all_exclude_days |= self.parse_exclude_days(book_conf[userid])
+        except:
+            pass
+        return all_exclude_days
 
     def init_logger(self, id_name):
         self.log_path = trans_var.log_path_prefix + id_name
@@ -269,7 +316,7 @@ class FirstCand:
                     if office_stat['status'] != 'A':
                         continue
                     ts = int(office_stat['date'] / 1000)
-                    dt = datetime.date.fromtimestamp(ts)
+                    dt = date.fromtimestamp(ts)
                     result.append({'ts': ts, 'dt': dt.strftime('%Y-%m-%d')})
         except Exception as e:
             self.logger.error('%s error occurred when http_req_avail_date: %s', region_en, str(e), exc_info=True)
@@ -366,6 +413,7 @@ def make_first_book(region, dt, time_zone):
 
 if __name__ == "__main__":
     c = FirstCand()
+    all_exclude_days = c.get_invalid_region_day()
     c.build_session()
     c.multi_request_avail_date()
     c.multi_req_avail_time()
