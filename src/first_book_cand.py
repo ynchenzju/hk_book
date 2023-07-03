@@ -21,16 +21,43 @@ import trans_var
 import first_book_var
 import copy
 
+class GenCand:
+    def __init__(self, region = 'RHK', dt = '2023-01-01', time_zone = ("0000", "0000")):
+        random_year = str(random.randint(1985, 2005))
+        random_day = str(random.randint(10, 31))
+        enquiryCode = str(random.randint(1000, 9999))
+        id_code = str(random.randint(100000, 999999))
+
+        appl_avail_body = copy.deepcopy(first_book_var.appl_avail_body)
+        appl_avail_body['applicants'][0]['identityNum'][0] = id_code
+        appl_avail_body['applicants'][0]['dateOfBirth'] = random_day
+        appl_avail_body['applicants'][0]['yearOfBirth'] = random_year
+        appl_avail_body['enquiryCode'] = enquiryCode
+        appl_avail_body['checkDuplicateHkicDTOList'][0]['hkic'] = id_code
+        appl_avail_body['checkDuplicateHkicDTOList'][0]['birthDateStr'] = random_year + '01' + random_day
+        appl_avail_body['checkDuplicateHkicDTOList'][0]['enquiryCode'] = enquiryCode
+
+        appt_body = copy.deepcopy(first_book_var.req_make_appt_body)
+        appt_body['applicants'] = appl_avail_body['applicants']
+        appt_body['enquiryCode'] = enquiryCode
+        appt_body['officeId'] = region
+        appt_body['appointmentDate'] = ''.join(dt.split("-"))
+        appt_body['appointmentTime'] = time_zone[0]
+        appt_body['appointmentEndTime'] = time_zone[1]
+        appt_body['apptDate'] = dt
+        appt_body['startDate'] = time_zone[1]
+
+        appt_body['applicantInfoDTOList'][0]['identity'] = id_code
+        appt_body['applicantInfoDTOList'][0]['dateOfBirth'] = random_year + '01' + random_day
+
+        self.appl_avail_body = appl_avail_body
+        self.appt_body = appt_body
+
 class FirstCand:
-    def __init__(self, id_name = 'default'):
+    def __init__(self, region = 'RHK', dt = '2023-01-01', time_zone = ("0000", "0000")):
         self.normal_header = copy.deepcopy(trans_var.normal_header)
         self.init_logger('default')
-
-    def update_book_conf(self, id_name, total_book_conf):
-        self.book_conf = total_book_conf[id_name]
-        self.rebook_body['identityCode'] = self.book_conf['id_code']
-        self.rebook_body['identityType'] = '2' if self.book_conf['id_code'][0] >= '0' and self.book_conf['id_code'][0] <= '9' else '1'
-        self.rebook_body['enquiryCode'] = self.book_conf['query_code']
+        self.g = GenCand(region, dt, time_zone)
 
     def init_logger(self, id_name):
         self.log_path = trans_var.log_path_prefix + id_name
@@ -49,94 +76,120 @@ class FirstCand:
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%Y-%m-%d %H:%M:%S')
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
+        self.thd_hint = ''
 
-    def build_session(self, sess_time_interval = 1150):
-        if int(time.time()) - self.session_begin_time < sess_time_interval and self.sess != None:
-            return
-
-        try_cnt = 5
-        max_tc_cnt = 5
-        self.book_res = {}
-        while try_cnt >= 0:
-            try:
-                self.sess = requests.Session()
-                if sys.platform == 'linux':
-                    self.sess.proxies = {'http': 'socks5://127.0.0.1:9050', 'https': 'socks5://127.0.0.1:9050'}
-                    try:
-                        response = self.sess.get('https://checkip.amazonaws.com')
-                        ip_address = response.text.strip()
-                        self.logger.info('The session ip address is: ' + ip_address)
-                    except:
-                        try_cnt -= 1
-                        self.logger.error('request checkip amazonaws failed, try_cnt %u renew ip' % try_cnt)
-                        self.sess.close()
-                        if sys.platform == 'linux':
-                            trans_var.renew_tor_ip()
-                        time.sleep(1)
-                        continue
-
-                self.session_begin_time = int(time.time())
+    def get_ticket_func(self):
+        ticketid = ''
+        ret_code = trans_var.POST_MAX_NUM
+        try:
+            tc_times = 1000
+            while ticketid == '' and tc_times > 0:
                 r = self.sess.get(trans_var.NEW_TICKET_API)
                 url = urlparse(r.url)
                 query = url.query
-                ticketid = parse.parse_qs(query).get('ticketId')[0]
-                if ticketid != '':
-                    self.normal_header['ticketId'] = ticketid
-                    try_tc_cnt = self.check_tcCaptcha(self.sess)
-                    if try_tc_cnt > max_tc_cnt and len(self.book_res) == 0:
-                        try_cnt = 0
-                        break
-                else:
-                    self.logger.error('the web ticketid is null, please check!!')
-            except Exception as e:
-                self.logger.error('An error occurred in get_ticketid or check_tcCaptcha: %s', str(e), exc_info=True)
-
-            if len(self.book_res) > 0:
-                break
-            self.sess.close()
-            if sys.platform == 'linux':
-                trans_var.renew_tor_ip()
-            try_cnt -= 1
-            time.sleep(1)
-        return try_cnt
+                ticketid_list = parse.parse_qs(query).get('ticketId')
+                if ticketid_list is not None:
+                    ticketid = ticketid_list[0]
+                    ret_code = trans_var.POST_SUCC
+                    break
+                tc_times -= 1
+                self.logger.warning(self.thd_hint + 'tc_times: %u get ticekt system is busy' % tc_times)
+                time.sleep(3)
+        except Exception as e:
+            self.logger.error(self.thd_hint + 'An error occurred in get_ticket: %s', str(e), exc_info=True)
+            ret_code = trans_var.POST_ERROR
+        return ticketid, ret_code
 
 
-    def get_pic(self, s, rebook_body):
+
+    def get_pic_code(self, s, tc_body):
         r = s.get(trans_var.cap_refresh_api, headers=self.normal_header)
         html = r.text
         capid = re.search(r'BDC_VCID_tcCaptcha" value="(\S*)"', html).group(1)
-        rebook_body['captchaId'] = capid
+        tc_body['captchaId'] = capid
 
         req_pic_api = trans_var.req_pic_api_prefix + capid
         r = s.get(req_pic_api, headers=self.normal_header)
         ocr = ddddocr.DdddOcr(show_ad=False)
-        res = ocr.classification(r.content)
-        return res
+        tc_body['captchaCode'] = ocr.classification(r.content)
 
-    def check_tcCaptcha(self, s, rebook_body = trans_var.rebook_body.copy(), tc_link = trans_var.book_enquiry_link):
+    def check_tcCaptcha(self, s, tc_body, tc_link):
+        ret_code = trans_var.POST_MAX_NUM
+        tc_times = 5
+        self.book_res = {}
         try:
-            max_try_cnt = 5
-            try_tcCaptcha_cnt = 1
-            rebook_body['captchaCode'] = self.get_pic(s, rebook_body)
+            self.get_pic_code(s, tc_body)
             time.sleep(3)
-            r = s.post(tc_link, data=json.dumps(rebook_body, default=lambda x: None if x is None else x), headers=self.normal_header)
-            while r.status_code != 200:
-                try_tcCaptcha_cnt += 1
-                rebook_body['captchaCode'] = self.get_pic(s, rebook_body)
+            r = s.post(tc_link, data=json.dumps(tc_body, default=lambda x: None if x is None else x),
+                       headers=self.normal_header)
+            while r.status_code != 200 and tc_times > 0:
+                self.get_pic_code(s, tc_body)
                 time.sleep(3)
-                r = s.post(tc_link, data=json.dumps(rebook_body, default=lambda x: None if x is None else x), headers=self.normal_header)
-                self.logger.warning("try_tcCaptcha_cnt: %u, res: %s, link: %s, result: %s" % (
-                try_tcCaptcha_cnt, rebook_body['captchaCode'], rebook_body['captchaId'], r.text))
-                if try_tcCaptcha_cnt > max_try_cnt:
-                    break
-            # self.book_res = json.loads(r.text)
-            if try_tcCaptcha_cnt > max_try_cnt and r.status_code != 200:
-                self.book_res = {}
+                r = s.post(tc_link, data=json.dumps(tc_body, default=lambda x: None if x is None else x),
+                           headers=self.normal_header)
+                self.logger.warning(self.thd_hint + "tc_times: %u res: %s, link: %s, result: %s" % (
+                tc_times, tc_body['captchaCode'], tc_body['captchaId'], r.text))
+                tc_times -= 1
+            if r.status_code == 200:
+                ret_code = trans_var.POST_SUCC
+                self.book_res = {} if self.first_book else json.loads(r.text)
         except Exception as e:
-            self.logger.error('An error occurred in check_tcCaptcha : %s', str(e), exc_info=True)
-            self.book_res = {}
-        return r.status_code
+            self.logger.error(
+                self.thd_hint + 'tc_times: %u An error occurred in check_tcCaptcha : %s' % (tc_times, str(e)),
+                exc_info=True)
+            ret_code = trans_var.POST_ERROR
 
+        return ret_code
+
+    def build_session(self, sess_time_interval=900):
+        if int(time.time()) - self.session_begin_time < sess_time_interval and self.sess != None:
+            return
+        self.book_res = {}
+        try_cnt_map = {"ip_check": 5, "get_ticket": 5, "tc_captcha": 5}
+        ret_code = trans_var.POST_ERROR
+        while ret_code == trans_var.POST_ERROR and try_cnt_map['ip_check'] > 0 and try_cnt_map['get_ticket'] > 0 and try_cnt_map['tc_captcha'] > 0:
+            self.logger.info(self.thd_hint + 'in build session loop, try_cnt: %s' % json.dumps(try_cnt_map))
+            if self.sess is not None:
+                self.sess.close()
+            self.sess = requests.Session()
+
+            if sys.platform == 'linux':
+                self.sess.proxies = {'http': 'socks5://127.0.0.1:9050', 'https': 'socks5://127.0.0.1:9050'}
+                try_cnt_map['ip_check'] -= 1
+                try:
+                    response = self.sess.get('https://checkip.amazonaws.com')
+                    ip_address = response.text.strip()
+                    self.logger.info(self.thd_hint + 'The session ip address is: ' + ip_address)
+                except:
+                    self.logger.error(
+                        self.thd_hint + 'request checkip amazonaws failed, ip_check remains %u times' % try_cnt_map[
+                            'ip_check'])
+                    trans_var.renew_tor_ip()
+                    continue
+
+            ticketid, ticket_code = self.get_ticket_func()
+            if ticket_code != trans_var.POST_SUCC:
+                if ticket_code == trans_var.POST_ERROR:
+                    try_cnt_map['get_ticket'] -= 1
+                    if sys.platform == 'linux':
+                        trans_var.renew_tor_ip()
+                self.logger.error(self.thd_hint + 'request get ticket failed code: %d, get_ticket remains %u times' % (ret_code, try_cnt_map['get_ticket']))
+                continue
+
+            self.session_begin_time = int(time.time())
+
+            self.normal_header['ticketId'] = ticketid
+            tc_body = self.g.appl_avail_body
+            tc_link = trans_var.appl_avail_link
+            ret_code = self.check_tcCaptcha(self.sess, tc_body, tc_link)
+            try_cnt_map['tc_captcha'] -= 1
+            if ret_code == trans_var.POST_ERROR:
+                self.logger.error(self.thd_hint + 'request tc captcha failed, tc_captcha remains %u times' % try_cnt_map['tc_captcha'])
+                if sys.platform == 'linux':
+                    trans_var.renew_tor_ip()
+
+        self.logger.info(self.thd_hint + 'ret_code: %d out build session loop, try_cnt: %s' % (ret_code, json.dumps(try_cnt_map)))
+        return ret_code
 
     def filter_region_time(self, region_day_time):
         self.cand_region_time = {}
@@ -274,16 +327,12 @@ class FirstCand:
         new_req_avail_time_body['groupSize'] = 1
         new_req_avail_time_body['nature'] = 'D'
         params = []
-        cnt = 0
         for region in self.region_day_time:
             for daytime in self.region_day_time[region]:
                 ts, dt = daytime['ts'], daytime['dt']
                 new_req_avail_time_body['targetOfficeId'] = region
                 new_req_avail_time_body['targetDate'] = dt
                 params.append((trans_var.req_time_link, new_req_avail_time_body.copy(), daytime))
-                cnt += 1
-                if cnt > 1:
-                    break
 
         if len(params) > 0:
             with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -303,41 +352,6 @@ class FirstCand:
             pass
 
 
-    def make_appl_avail_req(self, g):
-        try_cnt = 5
-        max_tc_cnt = 5
-        ret_code = -1
-        self.book_res = {}
-        while try_cnt >= 0:
-            try:
-                self.sess = requests.Session()
-                self.session_begin_time = int(time.time())
-                r = self.sess.get(trans_var.NEW_TICKET_API)
-                url = urlparse(r.url)
-                query = url.query
-                ticketid = parse.parse_qs(query).get('ticketId')[0]
-                if ticketid != '':
-                    self.normal_header['ticketId'] = ticketid
-                    new_appl_avail_body = g.appl_avail_body.copy()
-                    ret_code = self.check_tcCaptcha(self.sess, new_appl_avail_body, first_book_var.appl_avail_link)
-                    if ret_code != 200:
-                        try_cnt = 0
-                        break
-                else:
-                    self.logger.error('the web ticketid is null, please check!!')
-            except Exception as e:
-                self.logger.error('An error occurred in get_ticketid or check_tcCaptcha: %s', str(e), exc_info=True)
-
-            if ret_code == 200:
-                break
-            self.sess.close()
-            if sys.platform == 'linux':
-                trans_var.renew_tor_ip()
-            try_cnt -= 1
-            time.sleep(1)
-        return try_cnt
-
-
     def __del__(self):
         try:
             if self.sess is not None:
@@ -345,58 +359,14 @@ class FirstCand:
         except:
             pass
 
-class GenCand:
-    def __init__(self, region = 'RHK', dt = '2023-01-01', time_zone = ("0000", "0000")):
-        random_year = str(random.randint(1985, 2005))
-        random_day = str(random.randint(10, 31))
-        enquiryCode = str(random.randint(1000, 9999))
-        id_code = str(random.randint(100000, 999999))
-
-        appl_avail_body = copy.deepcopy(first_book_var.appl_avail_body)
-        appl_avail_body['applicants'][0]['identityNum'][0] = id_code
-        appl_avail_body['applicants'][0]['dateOfBirth'] = random_day
-        appl_avail_body['applicants'][0]['yearOfBirth'] = random_year
-        appl_avail_body['enquiryCode'] = enquiryCode
-        appl_avail_body['checkDuplicateHkicDTOList'][0]['hkic'] = id_code
-        appl_avail_body['checkDuplicateHkicDTOList'][0]['birthDateStr'] = random_year + '01' + random_day
-        appl_avail_body['checkDuplicateHkicDTOList'][0]['enquiryCode'] = enquiryCode
-
-        appt_body = copy.deepcopy(first_book_var.req_make_appt_body)
-        appt_body['applicants'] = appl_avail_body['applicants']
-        appt_body['enquiryCode'] = enquiryCode
-        appt_body['officeId'] = region
-        appt_body['appointmentDate'] = ''.join(dt.split("-"))
-        appt_body['appointmentTime'] = time_zone[0]
-        appt_body['appointmentEndTime'] = time_zone[1]
-        appt_body['apptDate'] = dt
-        appt_body['startDate'] = time_zone[1]
-
-        appt_body['applicantInfoDTOList'][0]['identity'] = id_code
-        appt_body['applicantInfoDTOList'][0]['dateOfBirth'] = random_year + '01' + random_day
-
-        confirm_body = copy.deepcopy(first_book_var.confirm_body)
-        confirm_body['enquiryCode'] = enquiryCode
-        confirm_body['apmidCode'] = id_code
-        now = datetime.datetime.now()
-        month_day = now.strftime("%m%d")
-        confirm_body['trn'] = "57923" + month_day + "1005" + str(random.randint(100, 999))
-
-        self.appl_avail_body = appl_avail_body
-        self.appt_body = appt_body
-
 def make_first_book(region, dt, time_zone):
-    g = GenCand(region, dt, time_zone)
-    c = FirstCand()
-    c.make_appl_avail_req(g)
-    c.make_appt(g)
-    print(g.appt_body)
-
+    c = FirstCand(region, dt, time_zone)
+    c.make_appt()
 
 
 if __name__ == "__main__":
-    g = GenCand()
     c = FirstCand()
-    c.make_appl_avail_req(g)
+    c.build_session()
     c.multi_request_avail_date()
     c.multi_req_avail_time()
     for region in c.region_day_time:

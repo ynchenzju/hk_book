@@ -11,7 +11,10 @@ sentinal = 'sentinal'
 region_map = {"RHK": "湾仔", "RKO": "长沙湾", "RKT": "观塘", "FTO": "火炭", "TMO": "屯门", "YLO": "元朗"}
 
 NEW_TICKET_API = "https://eservices.es2.immd.gov.hk/surgecontrolgate/ticket/getTicketGet?svcId=579&applicationId=579&language=zh&country=HK&qitq=b7c0412c-ed4b-4976-9a9c-b4991003a7be&qitp=0729de79-9798-4618-a9ef-849a2295def7&qitts=1684147349&qitc=immdiconsprod&qite=immdsm2&qitrt=Safetynet&qith=56565ff4500e9b86c9926c4813576d89"
-# NEW_TICKET_API = 'https://webapp.es2.immd.gov.hk/smartics2-client/ropbooking/zh-HK/eservices/indexPage?svcId=579&applicationId=579&qitq=29224ee9-f6dc-418b-87e5-412b67ad97cb&qitp=ea304476-0e5f-4440-86f6-80614c3923d5&qitts=1686272946&qitc=immdiconsprod&qite=immdsm2&qitrt=Queue&qith=c46a16a953d5115f2adeaa729a0958c8&ticketId=579-e14da356-9285-461b-989e-b855b79a5ee7'
+
+POST_ERROR = -1
+POST_SUCC = 0
+POST_MAX_NUM = 1
 
 cap_refresh_api = 'https://webapp.es2.immd.gov.hk/smartics2-services/common-services/captcha_4_0_beta_3_5/botdetectcaptcha?get=html&c=tcCaptcha'
 req_pic_api_prefix = 'https://webapp.es2.immd.gov.hk/smartics2-services/common-services/captcha_4_0_beta_3_5/botdetectcaptcha?get=image&c=tcCaptcha&t='
