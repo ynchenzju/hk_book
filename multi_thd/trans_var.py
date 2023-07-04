@@ -189,11 +189,11 @@ app_instance = {
 # 多个未满11岁儿童一般时间段换证, nature = J; 1个时为'G'
 # 1个未满11岁儿童选择延长时间段换证，nature='O'
 book_attr_map = {
-    'other': {'natureGroup' : 'FIRST_REGISTRATION', 'nature': 'D', 'ageGroup': 'A'},
-    'evisa': {'natureGroup': 'FIRST_REGISTRATION', 'nature': 'W', 'ageGroup': 'A'},
-    'adult_hkid': {'natureGroup': 'SIDCC', 'nature': 'S', 'ageGroup': 'A'}, # 成人身份证旧换新
-    'child_hkid': {'natureGroup': 'REPLACEMENT', 'nature': 'G', 'ageGroup': 'J'}, # 未满11岁1个儿童一般时间段换证
-    'child_first': {'natureGroup': 'FIRST_REGISTRATION', 'nature': 'B', 'ageGroup': 'J'}  # 满11岁1个儿童首次申请
+    'other': {'natureGroup' : 'FIRST_REGISTRATION', 'nature': 'D'},
+    'evisa': {'natureGroup': 'FIRST_REGISTRATION', 'nature': 'W'},
+    'adult_hkid': {'natureGroup': 'SIDCC', 'nature': 'S'}, # 成人身份证旧换新
+    'child_hkid': {'natureGroup': 'REPLACEMENT', 'nature': 'G'}, # 未满11岁1个儿童一般时间段换证
+    'child_first': {'natureGroup': 'FIRST_REGISTRATION', 'nature': 'B'}  # 满11岁1个儿童首次申请
 }
 
 appl_struct = {
