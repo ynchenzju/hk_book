@@ -120,6 +120,11 @@ class Candidate:
             self.rebook_body['enquiryCode'] = self.book_conf['query_code']
             self.change_app_req = copy.deepcopy(trans_var.change_app_req)
 
+    def check_stop(self):
+        if self.bc_set.succ_event.is_set() or self.bc_set.stop_event.is_set() or self.succ_flag:
+            return True
+        return False
+
     def get_ticket_func(self):
         ticketid = ''
         ret_code = trans_var.POST_MAX_NUM
@@ -182,7 +187,7 @@ class Candidate:
         self.book_res = {}
         try_cnt_map = {"ip_check": 5, "get_ticket": 5, "tc_captcha": 5}
         ret_code = trans_var.POST_ERROR
-        while ret_code == trans_var.POST_ERROR and try_cnt_map['ip_check'] > 0 and try_cnt_map['get_ticket'] > 0 and try_cnt_map['tc_captcha'] > 0:
+        while ret_code == trans_var.POST_ERROR and try_cnt_map['ip_check'] > 0 and try_cnt_map['get_ticket'] > 0 and try_cnt_map['tc_captcha'] > 0 and not self.check_stop():
             time.sleep(1)
             self.logger.info(self.thd_hint + 'in build session loop, try_cnt: %s' % json.dumps(try_cnt_map))
             if self.sess is not None:
@@ -226,6 +231,8 @@ class Candidate:
 
 
     def filter_region_time(self, region_day_time):
+        if self.check_stop():
+            return
         self.cand_region_time = {}
         filter_by_certain_time = []
         for region in region_day_time:
@@ -263,6 +270,8 @@ class Candidate:
                 self.g.appt_body['apptDate'] = avail_time['dt']
                 self.g.appt_body['appointmentDate'] = ''.join(avail_time['dt'].split("-"))
                 for time_zone in avail_time['time_zone']:
+                    if self.check_stop():
+                        break
                     self.g.appt_body['appointmentTime'] = time_zone[0]
                     self.g.appt_body['appointmentEndTime'] = time_zone[1]
                     self.g.appt_body['startDate'] = time_zone[1]
@@ -270,18 +279,18 @@ class Candidate:
                                        data=json.dumps(self.g.appt_body, default=lambda x: None if x is None else x),
                                        headers=self.normal_header)
                     self.book_result = "appDate:%s|appointmentTime:%s|officeId:%s" % (avail_time['dt'], time_zone[0], region)
-                    if r.status_code == 200 and not self.bc_set.succ_event.is_set() and not self.bc_set.stop_event.is_set():
+                    if r.status_code == 200 and not self.check_stop():
                         self.bc_set.succ_event.set()
                         self.bc_set.stop_event.set()
-                        self.log_record_list.append(self.book_result + "|200")
                         self.succ_flag = 1
+                        self.log_record_list.append(self.book_result + "|200")
                         self.bc_set.book_result = self.book_result
                         break
                     else:
                         self.log_record_list.append(self.book_result + "|" + r.text + '|' + str(self.g.appt_body['applicants']))
-                if self.succ_flag == 1:
+                if self.check_stop():
                     break
-            if self.succ_flag == 1:
+            if self.check_stop():
                 break
 
         self.log_record_list.append(json.dumps(self.g.appt_body))
@@ -299,6 +308,8 @@ class Candidate:
                 apptDate = avail_time['dt']
                 appointmentDate = ''.join(apptDate.split("-"))
                 for time_interval in avail_time['time_zone']:
+                    if self.check_stop():
+                        break
                     appointmentTime, appointmentEndTime = time_interval
                     startDate = appointmentEndTime
                     self.change_app_req['apptDate'] = apptDate
@@ -308,24 +319,27 @@ class Candidate:
                     self.change_app_req['startDate'] = startDate
                     r = self.sess.post(trans_var.change_link, data=json.dumps(self.change_app_req), headers=self.normal_header)
                     self.book_result = "appDate:%s|appointmentTime:%s|officeId:%s" % (apptDate, appointmentTime, region)
-                    if r.status_code == 200 and not self.bc_set.succ_event.is_set() and not self.bc_set.stop_event.is_set():
+                    if r.status_code == 200 and not self.check_stop():
                         self.bc_set.succ_event.set()
                         self.bc_set.stop_event.set()
-                        self.log_record_list.append(self.book_result + "|200")
                         self.succ_flag = 1
+                        self.log_record_list.append(self.book_result + "|200")
                         self.bc_set.book_result = self.book_result
                         break
                     else:
                         self.log_record_list.append(self.book_result + "|" + r.text + '|' + str(self.change_app_req['changeSize']))
-                if self.succ_flag == 1:
+                if self.check_stop():
                     break
-            if self.succ_flag == 1:
+            if self.check_stop():
                 break
         self.log_record_list.append(json.dumps(self.change_app_req))
         self.log_record_list.append(json.dumps(self.book_res))
 
     def http_req_avail_date(self, region_en, req_link, req_avail_date_body):
         result = []
+        if self.check_stop():
+            return {region_en: result}
+
         try:
             r = self.sess.post(req_link, data=json.dumps(req_avail_date_body), headers=self.normal_header)
             if r.status_code == 200:
@@ -351,6 +365,8 @@ class Candidate:
             new_req_avail_date_body['nature'] = self.book_res['nature']
 
     def multi_request_avail_date(self):
+        if self.check_stop():
+            return
         new_req_avail_date_body = copy.deepcopy(trans_var.req_avail_date_body)
         self.fill_req_avail_date_body(new_req_avail_date_body)
 
@@ -368,8 +384,9 @@ class Candidate:
                     if len(result[key]) > 0:
                         self.region_day_time[key] = result[key]
 
-
     def filter_date(self):
+        if self.check_stop():
+            return
         new_region_time = {}
         for region in self.region_day_time:
             for daytime in self.region_day_time[region]:
@@ -384,6 +401,9 @@ class Candidate:
 
 
     def http_req_avail_time(self, req_link, req_body, daytime):
+        if self.check_stop():
+            return
+
         try:
             daytime['time_zone'] = []
             r = self.sess.post(req_link, data=json.dumps(req_body), headers=self.normal_header)
@@ -403,6 +423,8 @@ class Candidate:
             new_req_avail_time_body['nature'] = self.book_res['nature']
 
     def multi_req_avail_time(self):
+        if self.check_stop():
+            return
         new_req_avail_time_body = copy.deepcopy(trans_var.req_avail_time_body)
         self.fill_req_avail_time_body(new_req_avail_time_body)
         params = []
@@ -419,7 +441,7 @@ class Candidate:
                 executor.shutdown(wait=True)
 
     def record_log(self):
-        self.logger.info(self.thd_hint + '\t'.join(self.log_record_list))
+        self.logger.info(self.thd_hint + '\t'.join(self.log_record_list) + "\t" + str(self.check_stop()))
         self.log_record_list = []
 
     def __del__(self):

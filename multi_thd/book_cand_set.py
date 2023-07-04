@@ -31,6 +31,11 @@ class BookCandSet:
         if 'thd_num' in self.book_conf:
             self.cand_num = self.book_conf['thd_num']
 
+    def check_stop(self):
+        if self.stop_event.is_set() or self.succ_event.is_set():
+            return True
+        return False
+
     def init_cand_list(self):
         for i in range(self.cand_num):
             c = Candidate(self.id_name, self, i)
@@ -70,14 +75,14 @@ class BookCandSet:
     def run_query_program(self, candidate):
         sleep_time = random.randint(0, 3)
         time.sleep(sleep_time)
-        while not self.stop_event.is_set():
+        while not self.check_stop():
             build_succ_flag = candidate.build_session()
-            if build_succ_flag != trans_var.POST_SUCC:
+            if build_succ_flag != trans_var.POST_SUCC and not candidate.check_stop():
                 self.send_error_message(candidate.id_name)
                 time.sleep(600)
                 continue
 
-            while int(time.time()) - candidate.session_begin_time < 1100 and candidate.succ_flag != 1 and not self.stop_event.is_set():
+            while int(time.time()) - candidate.session_begin_time < 1000 and not candidate.check_stop():
                 candidate.multi_request_avail_date()
                 candidate.filter_date()
                 candidate.multi_req_avail_time()
