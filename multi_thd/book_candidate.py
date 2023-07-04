@@ -17,6 +17,7 @@ import trans_var
 
 
 class GenCand:
+    current_year = datetime.datetime.now().year
     def __init__(self, book_conf):
         enquiryCode = book_conf['applicant'][0].split(",")[1][:4]
         book_type = book_conf['book_type']
@@ -46,6 +47,7 @@ class GenCand:
 
             birth_year = birth_date[:4]
             birth_day = birth_date[6:]
+            ageGroup = 'A' if GenCand.current_year - int(birth_year) >= 18 else 'J'
             appl_avail_body['applicants'].append(copy.deepcopy(trans_var.appl_struct))
             appl_avail_body['applicants'][-1]['identityType'] = id_type
             appl_avail_body['applicants'][-1]['identityNum'].append(id_code)
@@ -54,7 +56,7 @@ class GenCand:
 
             appl_avail_body['applicants'][-1]['dateOfBirth'] = birth_year
             appl_avail_body['applicants'][-1]['yearOfBirth'] = birth_day
-            appl_avail_body['applicants'][-1]['ageGroup'] = book_attr['ageGroup']
+            appl_avail_body['applicants'][-1]['ageGroup'] = ageGroup
 
             appl_avail_body['checkDuplicateHkicDTOList'].append(copy.deepcopy(trans_var.checkDuplicateHkicDTO))
             appl_avail_body['checkDuplicateHkicDTOList'][-1]['hkic'] = id_code
@@ -67,7 +69,7 @@ class GenCand:
             appt_body['applicantInfoDTOList'][-1]['identity'] = id_code
             appt_body['applicantInfoDTOList'][-1]['identityCode'] = id_postfix
             appt_body['applicantInfoDTOList'][-1]['dateOfBirth'] = birth_year + '01' + birth_day
-            appt_body['applicantInfoDTOList'][-1]['ageGroup'] = book_attr['ageGroup']
+            appt_body['applicantInfoDTOList'][-1]['ageGroup'] = ageGroup
 
             if book_type == 'evisa':
                 appl_avail_body['applicants'][-1]['ARN'] = evisa_list[idx]
